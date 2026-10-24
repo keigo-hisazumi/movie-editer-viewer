@@ -35,7 +35,7 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
     {"apiKey":"AIza...","authDomain":"<プロジェクトID>.firebaseapp.com","projectId":"<プロジェクトID>","storageBucket":"<プロジェクトID>.firebasestorage.app","messagingSenderId":"...","appId":"1:..."}
     ```
 
-3. GitHub の movie-editer-viewer の「Settings」▸「Secrets and variables」▸「Actions」▸「Variables」タブで、名前 `FIREBASE_CONFIG`、値にこの JSON を入れて保存する。
+3. GitHub の movie-editer-viewer の「Settings」▸「Secrets and variables」▸「Actions」▸「Variables」タブの「Repository variables」の「New repository variable」で、名前 `FIREBASE_CONFIG`、値にこの JSON を入れて保存する。
 
 この値はブラウザに配られる公開の値なので、Secret でなく Variable で構いません。データを守っているのは手順 2 のルールです。
 
