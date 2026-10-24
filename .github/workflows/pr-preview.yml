@@ -71,11 +71,12 @@ jobs:
       - name: 依存関係のインストール
         run: npm ci
 
-      # TODO: フレームワークに合わせてベースパスの変数名を変更してください
       - name: PR ブランチ用ベースパスでビルド
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/pr-${{ github.event.number }}/
           VITE_APP_ENV: preview
+          # Firebase の firebaseConfig（JSON）。リポジトリ変数 FIREBASE_CONFIG に入れる（公開される値なので Secret でなくてよい）
+          VITE_FIREBASE_CONFIG: ${{ vars.FIREBASE_CONFIG }}
           # TODO: PWA（Service Worker）を導入する場合は、プレビューで自己破棄する SW を
           # 生成するなどして本番 SW との競合やプレビュー同士のキャッシュ混在を防いでください
           # （例: VITE_DISABLE_PWA: 'true' を vite.config.ts で解釈する）

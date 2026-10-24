@@ -1,75 +1,76 @@
-# Template
+# movie-editer-viewer
 
-このリポジトリは新しいプロジェクト用のテンプレートです。AI アシスタント向けの指示書、Issue / PR テンプレート、CI/CD の雛形、エディタ設定、各種ドット・ガバナンスファイルを含みます。
+[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・切り抜き候補・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、Google でログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
 
-## AI アシスタント運用方針
+## 主な機能
 
-このテンプレートは **Claude をメインの AI アシスタント** として利用し、**GitHub Copilot をサブツール** として併用するワークフローを想定しています。開発ルールの **正本は [`AGENTS.md`](./AGENTS.md)** で、各ツール向けの指示書はそれを参照する構成です。
-
-| ツール | ファイル | 役割 |
-| --- | --- | --- |
-| 汎用 AI エージェント | [`AGENTS.md`](./AGENTS.md) | **正本**。すべてのルールはここに集約 |
-| Claude Code | [`CLAUDE.md`](./CLAUDE.md) | `AGENTS.md` を参照 |
-
-## 含まれるもの
-
-### AI 向け指示書
-
-- `AGENTS.md` — **正本**（汎用 AI エージェント向け）
-- `CLAUDE.md` — Claude Code 向け（`AGENTS.md` を参照）
-
-### Issue / PR
-
-- `.github/ISSUE_TEMPLATE/` — バグ報告 / 機能要望 / 質問テンプレート
-- `.github/PULL_REQUEST_TEMPLATE.md` — PR テンプレート（日本語）
-- `.github/CODEOWNERS` — レビュー自動アサイン
-- `CONTRIBUTING.md` / `SECURITY.md` — 貢献ガイドとセキュリティポリシー
-
-### CI/CD
-
-- `.github/workflows/ci.yml` — PR 時の lint / typecheck / test / build（`package.json` がある場合のみ実行）
-- `.github/workflows/actionlint.yml` — workflow 自体の Lint（公式バイナリをバージョン固定で実行。`.github/actionlint-matcher.json` でエラー行に注釈を付ける）
-- `.github/workflows/markdownlint.yml` — Markdown の書き方チェック（ルールは `.markdownlint-cli2.jsonc`、内容は `AGENTS.md` の「Markdown の書き方」）
-- `.github/workflows/codeql.yml` — セキュリティスキャン（workflow 定義は常に、JS/TS は ソースがある場合のみ解析）
-- `.github/workflows/deploy.yml` — main への PR マージ時に GitHub Pages へデプロイ
-- `.github/workflows/pr-preview.yml` — PR ごとのプレビュー環境（`pr-<番号>/`）を gh-pages にデプロイし、URL と QR コードをコメント
-- `.github/workflows/release-drafter.yml` + `.github/release-drafter.yml` — main へのマージごとにリリースノート草案を更新（PR タイトルの Conventional Commits プレフィックスで分類）
-- `.github/workflows/pr-title.yml` — PR タイトルが Conventional Commits 形式（例: `feat: 〜`）かを検証
-- `.github/workflows/screenshot.yml` — PR スクリーンショット用 Playwright 雛形
-- `.github/dependabot.yml` — 依存関係の自動更新
-
-### 環境差異の吸収
-
-- `.editorconfig` — エディタ間のインデント／改行統一
-- `.markdownlint-cli2.jsonc` — Markdown の書き方ルール
-- `.gitattributes` — テキスト/バイナリ・改行コードの正規化
-- `.gitignore` — OS / 言語 / ビルド成果物
-- `.vscode/extensions.json`, `.vscode/settings.json` — VSCode 推奨拡張・設定
-
-### その他
-
-- `LICENSE` — MIT
+- 動画ごとの出力の一覧（トピック・候補・ショートの数、更新日時）
+- トピックの一覧と、YouTube の概要欄に貼れるチャプター
+- 切り抜き候補（見出し・タイトル案・選んだ理由・外す範囲・BGM・効果音・画像）
+- 作ったショートの記録（長さ・カット・画面の文字・BGM と効果音・ファイル）
+- Google ログインで本人だけが見られる
 
 ## 使い方
 
-1. このテンプレートから新しいリポジトリを作成（GitHub の **Use this template** ボタン、または clone）。
-2. `README.md` を `AGENTS.md` の「README の構成」に沿って書き換え、`CODEOWNERS`、`LICENSE` のプロジェクト名や著作権者を書き換える。
-3. 言語/フレームワークが決まったら以下を有効化:
-   - `.github/workflows/ci.yml` は `lint` / `type-check` / `build` の npm script を実行する（`lint` / `type-check` はスクリプトがなければスキップ、`build` は必須）。テストを追加したら Test ジョブのプレースホルダーを差し替える
-   - `.github/workflows/codeql.yml` で JS/TS 以外の言語を解析する場合は detect ジョブの判定を追加
-   - `.github/workflows/deploy.yml` / `pr-preview.yml` のベースパス変数名（既定は Vite の `VITE_BASE_PATH`）と `publish_dir` を確認
-   - Vite の場合は `vite.config.ts` に `base: process.env.VITE_BASE_PATH ?? '/'` を追加する（未設定だと GitHub Pages 上でアセットが 404 になり画面が真っ白になる）
-   - `.github/workflows/screenshot.yml` は Playwright 導入後、リポジトリ変数 `ENABLE_SCREENSHOT` を `true` に設定して有効化
-   - `.github/dependabot.yml` の対応する `package-ecosystem` のコメントアウトを外す（typescript-eslint を使わない場合は typescript の `ignore` を削除）
-4. **リポジトリ作成後の手動設定**（テンプレートに含められないため `README` で案内）:
-   - `main` ブランチ保護ルールを設定（PR 必須、CI パス必須、force push 禁止）
-   - GitHub Actions の権限を `Read and write` 許可（Release Drafter / GitHub Pages デプロイ / PR プレビュー用）
-   - GitHub Pages のソースを `gh-pages` ブランチに設定（`deploy.yml` / `pr-preview.yml` を使う場合）
-   - Secret スキャン / Dependabot Alerts を有効化
+1. movie-editer で `prepare`・`topics`・`candidates`・`make` などを実行すると、その動画の記録が Firestore に自動で送られる（まとめて送り直すときは `python -m shorts publish`）。
+2. 公開先を開き、Google でログインする。
+3. 一覧から動画を選ぶ。
 
-## VSCode 環境
+## Firebase の設定
 
-VSCode をエディタとして使うワークフローを想定しています。`.vscode/extensions.json` に記載の拡張をインストールすると、Lint / Format / Spell check が即座に動きます。
+初回の設定（Firebase プロジェクト・Firestore のルール・Google ログイン・movie-editer の鍵・GitHub Pages）は [docs/firebase-setup.md](docs/firebase-setup.md) にまとめています。データは Firestore の `videos` コレクションに動画 1 本 1 ドキュメントで入り、中身は movie-editer の `shorts/publish.py` が書く JSON です。
+
+## 技術スタック
+
+- TypeScript
+- Vite
+- Firebase（Authentication・Cloud Firestore、Spark プラン）
+- Vitest
+- GitHub Pages
+
+## 開発
+
+### 必要な環境
+
+- Node.js 22
+
+### コマンド
+
+```bash
+npm ci
+npm run dev       # 開発サーバー
+npm run build     # 型チェックとビルド（dist/）
+npm run preview   # ビルドしたものを確認
+npm test          # テスト
+```
+
+### 初回の設定
+
+`.env.example` を `.env.local` にコピーし、`VITE_FIREBASE_CONFIG` に Firebase の `firebaseConfig` の JSON を書きます。
+
+## ディレクトリ構成
+
+```text
+.
+├── docs/firebase-setup.md   # Firebase と GitHub Pages の初回設定
+├── firestore.rules          # Firestore のルール（本人だけ読める）
+├── index.html               # 画面の外枠
+└── src/
+    ├── main.ts              # ログインと画面の切り替え
+    ├── firebase.ts          # Firebase の初期化と読み込み
+    ├── render.ts            # 一覧・動画ページの HTML
+    ├── format.ts            # 時刻などの表示用関数
+    ├── types.ts             # Firestore のデータの型
+    └── style.css            # 見た目（movie-editer の serve と同じ）
+```
+
+## デプロイ
+
+main への PR マージ時に GitHub Actions でビルドし、`gh-pages` ブランチ経由で GitHub Pages に公開します。PR ごとに `pr-<番号>/` のプレビューも作ります。ビルドにはリポジトリ変数 `FIREBASE_CONFIG` を使います。
+
+## 開発ルール
+
+[AGENTS.md](AGENTS.md) を参照してください。
 
 ## ライセンス
 

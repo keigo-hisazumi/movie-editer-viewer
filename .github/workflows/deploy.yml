@@ -62,18 +62,18 @@ jobs:
           cache: 'npm'
       - name: 依存関係のインストール
         run: npm ci
-      # TODO: フレームワークに合わせてベースパスの変数名を変更してください
       - name: ビルド
         run: npm run build
         env:
           NODE_ENV: production
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           VITE_APP_ENV: production
+          # Firebase の firebaseConfig（JSON）。リポジトリ変数 FIREBASE_CONFIG に入れる（公開される値なので Secret でなくてよい）
+          VITE_FIREBASE_CONFIG: ${{ vars.FIREBASE_CONFIG }}
       - name: GitHub Pages へのデプロイ
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # TODO: ビルド出力ディレクトリを確認してください（例: ./dist, ./build, ./out）
           publish_dir: ./dist
           keep_files: true
           exclude_assets: 'pr-*'

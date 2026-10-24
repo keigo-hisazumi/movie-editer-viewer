@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// movie-editer-viewer 用の Firestore ルール（Firebase コンソールの Firestore ▸ ルール に貼る）
+// - 読めるのは Google でログインした本人だけ。OWNER_EMAIL を自分の Gmail アドレスに書き換える
+// - ブラウザからは書き込ませない（movie-editer の publish はサービスアカウントで送るのでルールに関係なく書ける）
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /videos/{name} {
+      allow read: if request.auth != null
+        && request.auth.token.email == 'OWNER_EMAIL'
+        && request.auth.token.email_verified == true;
+      allow write: if false;
+    }
+  }
+}
