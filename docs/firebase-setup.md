@@ -29,13 +29,20 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
 ## 4. ウェブアプリの設定をビューアに渡す
 
 1. 歯車 ▸「プロジェクトの設定」▸「全般」▸「マイアプリ」でウェブ（`</>`）のアプリを追加する。Firebase Hosting は設定しない。
-2. 表示された `firebaseConfig` の中身を、キーも `"` で囲んだ 1 行の JSON にする。
+2. 表示された `firebaseConfig` の `{` から `}` までをコピーする（コンソールに出る書き方のままでよい）。
 
-    ```json
-    {"apiKey":"AIza...","authDomain":"<プロジェクトID>.firebaseapp.com","projectId":"<プロジェクトID>","storageBucket":"<プロジェクトID>.firebasestorage.app","messagingSenderId":"...","appId":"1:..."}
+    ```javascript
+    {
+      apiKey: "AIza...",
+      authDomain: "<プロジェクトID>.firebaseapp.com",
+      projectId: "<プロジェクトID>",
+      storageBucket: "<プロジェクトID>.firebasestorage.app",
+      messagingSenderId: "...",
+      appId: "1:..."
+    }
     ```
 
-3. GitHub の movie-editer-viewer の「Settings」▸「Secrets and variables」▸「Actions」▸「Variables」タブの「Repository variables」の「New repository variable」で、名前 `FIREBASE_CONFIG`、値にこの JSON を入れて保存する。
+3. GitHub の movie-editer-viewer の「Settings」▸「Secrets and variables」▸「Actions」▸「Variables」タブの「Repository variables」の「New repository variable」で、名前 `FIREBASE_CONFIG`、値にコピーしたものを貼って保存する。
 
 この値はブラウザに配られる公開の値なので、Secret でなく Variable で構いません。データを守っているのは手順 2 のルールです。
 
