@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeRequests, sourcesBody } from './sources';
+import { activeRequests, groupByFolder, sourcesBody } from './sources';
 import type { RequestDoc, SourceItem, SourcesDoc } from './types';
 
 const item = (rel: string, over: Partial<SourceItem> = {}): SourceItem => ({
@@ -23,7 +23,6 @@ describe('sourcesBody', () => {
     const html = sourcesBody(src([item('202610/20261017.mp4'), item('20261001.mp4', { transcript: true, topics: 5, candidates: 3 })]), [], '/', new Set(['20261001']));
     expect(html).toContain('data-video="202610/20261017.mp4" data-redo="">トピックと候補を作る');
     expect(html).toContain('data-video="20261001.mp4" data-redo="1">作り直す');
-    expect(html).toContain('<div class=\'muted small\'>202610/</div>');
     expect(html).toContain('href="/?v=20261001"');
     expect(html).not.toContain('href="/?v=20261017"');
   });
@@ -49,5 +48,24 @@ describe('activeRequests', () => {
       req({ action: 'scan', status: 'queued' }),
     ]);
     expect([...m.keys()]).toEqual(['b.mp4']);
+  });
+});
+
+describe('フォルダごとの折りたたみ', () => {
+  const items = [item('202609/a.mp4'), item('b.mp4'), item('202610/c.mp4'), item('202610/d.mp4', { topics: 1, candidates: 1 })];
+  it('新しいフォルダから並べ、直下は最後', () => {
+    expect(groupByFolder(items).map(([f, l]) => [f, l.length])).toEqual([['202610', 2], ['202609', 1], ['', 1]]);
+  });
+  it('既定ではいちばん新しいフォルダと、処理中の依頼があるフォルダだけ開く', () => {
+    const html = sourcesBody(src(items), [req({ video: 'b.mp4', status: 'running' })], '/', new Set());
+    expect(html).toContain('data-folder="202610" open');
+    expect(html).toContain('data-folder="" open');
+    expect(html).not.toContain('data-folder="202609" open');
+    expect(html).toContain('<strong>202610/</strong> <span class=chip>2 本</span><span class=chip>未作成 1</span>');
+  });
+  it('開いているフォルダを指定すれば、その開閉を保つ', () => {
+    const html = sourcesBody(src(items), [], '/', new Set(), new Set(['202609']));
+    expect(html).toContain('data-folder="202609" open');
+    expect(html).not.toContain('data-folder="202610" open');
   });
 });

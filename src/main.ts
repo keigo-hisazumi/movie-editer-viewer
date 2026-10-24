@@ -50,9 +50,20 @@ function watchSources(fb: Fb, outputs: Set<string>): () => void {
   let src: SourcesDoc | null = null;
   let requests: RequestDoc[] = [];
   let loaded = { sources: false, requests: false }; // 両方読めてから描く
+  let open: Set<string> | null = null; // 開いているフォルダ（描き直しても開閉を保つ。最初は null で既定）
   const draw = () => {
-    if (loaded.sources && loaded.requests) box.innerHTML = sourcesBody(src, requests, BASE, outputs);
+    if (loaded.sources && loaded.requests) box.innerHTML = sourcesBody(src, requests, BASE, outputs, open);
   };
+  // フォルダを開け閉めしたら覚えておく（toggle は伝わらない（バブリングしない）ので capture で拾う）
+  box.addEventListener(
+    'toggle',
+    (ev) => {
+      const el = ev.target as HTMLElement;
+      if (!(el instanceof HTMLDetailsElement) || el.dataset.folder === undefined) return;
+      open = new Set([...box.querySelectorAll<HTMLDetailsElement>('details[data-folder]')].filter((d) => d.open).map((d) => d.dataset.folder!));
+    },
+    true,
+  );
   const fail = (e: Error) => {
     box.innerHTML = `<h2 id=sources>元動画</h2><p class=err>${esc(errorMessage(e))}</p>`;
   };
