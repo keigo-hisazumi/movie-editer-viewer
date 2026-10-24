@@ -57,10 +57,10 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
       credentials: "~/.config/shorts/firebase-key.json"
     ```
 
-4. 依存関係を入れ、今ある出力をまとめて送る。
+4. Mac のターミナルで movie-editer のフォルダ（`.venv` がある直下）に移動し、依存関係を入れて、今ある出力をまとめて送る。
 
     ```bash
-    .venv/bin/pip install -r requirements.txt
+    .venv/bin/python -m pip install -r requirements.txt
     .venv/bin/python -m shorts publish
     ```
 
