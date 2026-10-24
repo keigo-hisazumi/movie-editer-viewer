@@ -3,13 +3,38 @@ rules_version = '2';
 // movie-editer-viewer 用の Firestore ルール（Firebase コンソールの Firestore ▸ ルール に貼る）
 // - 読めるのはメール/パスワードでログインした本人だけ。OWNER_EMAIL を自分のアカウントのメールアドレスに書き換える
 // - Authentication の「ユーザーの作成（登録）」を無効にし、アカウントはコンソールで作る（同じメールアドレスは2つ作れない）
-// - ブラウザからは書き込ませない（movie-editer の publish はサービスアカウントで送るのでルールに関係なく書ける）
+// - ブラウザから書けるのは、決まった形の依頼（requests の queued の新規作成）だけ。それ以外の書き込みは断る
+//   （movie-editer の publish・watch はサービスアカウントで送るのでルールに関係なく書ける）
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null && request.auth.token.email == 'OWNER_EMAIL';
+    }
+
+    // 動画ごとのトピック・候補・ショート（movie-editer の publish が送る）
     match /videos/{name} {
-      allow read: if request.auth != null
-        && request.auth.token.email == 'OWNER_EMAIL';
+      allow read: if isOwner();
       allow write: if false;
+    }
+
+    // 元動画（video_dir）の一覧（movie-editer の watch・publish が all に送る）
+    match /sources/{id} {
+      allow read: if isOwner();
+      allow write: if false;
+    }
+
+    // ビューアからの依頼（movie-editer の watch が受け取って処理し、状態を書き戻す）
+    match /requests/{id} {
+      allow read: if isOwner();
+      allow create: if isOwner()
+        && request.resource.data.keys().hasOnly(['action', 'video', 'status', 'created', 'by'])
+        && request.resource.data.action in ['candidates', 'scan']
+        && request.resource.data.video is string
+        && request.resource.data.video.size() <= 1000
+        && request.resource.data.status == 'queued'
+        && request.resource.data.created == request.time
+        && request.resource.data.by == request.auth.token.email;
+      allow update, delete: if false;
     }
   }
 }

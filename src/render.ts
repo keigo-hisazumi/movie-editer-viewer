@@ -9,7 +9,7 @@ export function videoUrl(base: string, name: string): string {
 
 export function indexBody(docs: VideoDoc[], base: string): string {
   if (!docs.length) {
-    return '<h1>出力一覧</h1><p class=muted>まだ何も送られていません。movie-editer で <code>python -m shorts publish</code> を実行すると、ここに出ます。</p>';
+    return '<h2 id=outputs>出力一覧</h2><p class=muted>まだ何も送られていません。movie-editer で <code>python -m shorts publish</code> を実行すると、ここに出ます。</p>';
   }
   const rows = [...docs]
     .sort((a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0)) // 新しい順（動画名の逆順。serve と同じ）
@@ -25,7 +25,7 @@ export function indexBody(docs: VideoDoc[], base: string): string {
       );
     });
   return (
-    '<h1>出力一覧</h1><div class=scroll><table>' +
+    '<h2 id=outputs>出力一覧</h2><div class=scroll><table>' +
     '<thead><tr><th>動画名</th><th>内容</th><th>更新</th></tr></thead><tbody>' +
     rows.join('') +
     '</tbody></table></div>'
