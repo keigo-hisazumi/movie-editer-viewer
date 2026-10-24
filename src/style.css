@@ -34,3 +34,7 @@ header .user{margin-left:auto;font-size:13px;color:var(--muted);display:flex;gap
 button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 header button{padding:2px 8px;font-size:13px}
+form.signin{display:grid;gap:12px;max-width:360px}
+form.signin label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+form.signin input{font:inherit;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+form.signin button{justify-self:start}

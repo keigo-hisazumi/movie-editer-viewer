@@ -13,15 +13,18 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
 1. 左のメニューの「構築」▸「Firestore Database」▸「データベースを作成」を押す。
 2. ロケーションは `asia-northeast1`（東京）、モードは「本番環境モード」を選ぶ。
 3. 「ルール」タブを開き、このリポジトリの [`firestore.rules`](../firestore.rules) の中身を貼る。
-4. `OWNER_EMAIL` を、ビューアにログインする Google アカウントのメールアドレスに書き換えて「公開」を押す。
+4. `OWNER_EMAIL` を、手順 3 で作るログイン用のメールアドレスに書き換えて「公開」を押す。
 
 ルールにより、ブラウザから読めるのはそのアカウントだけになり、ブラウザからの書き込みはすべて断られます（movie-editer はサービスアカウントで送るのでルールに関係なく書けます）。
 
-## 3. Google ログインを有効にする
+## 3. メール/パスワードのログインを有効にし、自分のアカウントを作る
 
 1. 「構築」▸「Authentication」▸「始める」を押す。
-2. 「Sign-in method」タブで「Google」を選び、有効にしてサポートのメールアドレスを選んで保存する。
-3. 「設定」タブ ▸「承認済みドメイン」に `keigo-hisazumi.github.io` を追加する（`localhost` は最初から入っている）。
+2. 「Sign-in method」タブで「メール/パスワード」を選び、「メール/パスワード」だけを有効にして保存する（「メールリンク」はオフのまま）。
+3. 「Users」タブ ▸「ユーザーを追加」で、ログインに使うメールアドレスとパスワードを入れて追加する。
+4. 「設定」タブ ▸「ユーザー アクション」で「作成（登録）を有効にする」のチェックを外して保存する。ビューアに登録画面はありませんが、外しておくと他の人が API から勝手にアカウントを作れなくなります。
+
+パスワードを忘れたときは、「Users」タブでそのユーザーのメニューから「パスワードを再設定」を選びます。
 
 ## 4. ウェブアプリの設定をビューアに渡す
 
@@ -70,7 +73,7 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
 1. movie-editer-viewer の「Settings」▸「Actions」▸「General」で、「Workflow permissions」を「Read and write permissions」にする。
 2. ビューアの PR を main にマージすると、`deploy.yml` が `gh-pages` ブランチにビルドを置く。
 3. 「Settings」▸「Pages」で、Source を「Deploy from a branch」、ブランチを `gh-pages` の `/ (root)` にして保存する。
-4. <https://keigo-hisazumi.github.io/movie-editer-viewer/> を開き、Google でログインする。
+4. <https://keigo-hisazumi.github.io/movie-editer-viewer/> を開き、手順 3 で作ったメールアドレスとパスワードでログインする。
 
 ## 無料枠の目安
 

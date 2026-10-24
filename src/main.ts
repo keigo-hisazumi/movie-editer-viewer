@@ -1,4 +1,4 @@
-// 画面の切り替え：Google ログイン → 出力一覧（?v なし）／動画ごとのページ（?v=動画名）
+// 画面の切り替え：メール/パスワードでログイン → 出力一覧（?v なし）／動画ごとのページ（?v=動画名）
 import './style.css';
 import { FirebaseError } from 'firebase/app';
 import { connect, firebaseOptions } from './firebase';
@@ -24,6 +24,16 @@ function show(body: string, crumbs: [string, string | null][] = [], tabs: [strin
   if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
 }
 
+/** ログインの失敗の理由 */
+function signInError(e: unknown): string {
+  const code = e instanceof FirebaseError ? e.code : '';
+  if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email'].includes(code)) {
+    return 'メールアドレスかパスワードが違います。';
+  }
+  if (code === 'auth/too-many-requests') return '失敗が続いたため、しばらくログインできません。時間をおいて試してください。';
+  return `ログインできませんでした：${e instanceof Error ? e.message : String(e)}`;
+}
+
 function errorMessage(e: unknown): string {
   if (e instanceof FirebaseError && e.code === 'permission-denied') {
     return 'このアカウントでは見られません。Firestore のルールに書いたメールアドレスと、ログインしたアカウントが同じか確認してください。';
@@ -43,11 +53,20 @@ async function main() {
   fb.onUser(async (user) => {
     if (!user) {
       userBox.innerHTML = '';
-      show('<h1>ログイン</h1><p>movie-editer の出力を見るには、Google アカウントでログインしてください。</p>' +
-        '<p><button class=primary id=signin>Google でログイン</button></p><p class=err id=signin-error></p>');
-      document.querySelector('#signin')!.addEventListener('click', () => {
-        fb.signIn().catch((e: unknown) => {
-          document.querySelector('#signin-error')!.textContent = `ログインできませんでした：${e instanceof Error ? e.message : String(e)}`;
+      show('<h1>ログイン</h1><p>movie-editer の出力を見るには、ログインしてください。</p>' +
+        '<form id=signin class=signin>' +
+        '<label>メールアドレス<input name=email type=email autocomplete=username required></label>' +
+        '<label>パスワード<input name=password type=password autocomplete=current-password required></label>' +
+        '<button class=primary>ログイン</button></form><p class=err id=signin-error></p>');
+      const form = document.querySelector<HTMLFormElement>('#signin')!;
+      form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const f = new FormData(form);
+        const button = form.querySelector('button')!;
+        button.disabled = true;
+        fb.signIn(String(f.get('email')), String(f.get('password'))).catch((e: unknown) => {
+          document.querySelector('#signin-error')!.textContent = signInError(e);
+          button.disabled = false;
         });
       });
       return;

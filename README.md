@@ -1,6 +1,6 @@
 # movie-editer-viewer
 
-[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・切り抜き候補・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、Google でログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
+[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・切り抜き候補・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、メール/パスワードでログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
 
 ## 主な機能
 
@@ -8,17 +8,17 @@
 - トピックの一覧と、YouTube の概要欄に貼れるチャプター
 - 切り抜き候補（見出し・タイトル案・選んだ理由・外す範囲・BGM・効果音・画像）
 - 作ったショートの記録（長さ・カット・画面の文字・BGM と効果音・ファイル）
-- Google ログインで本人だけが見られる
+- メール/パスワードのログインで本人だけが見られる
 
 ## 使い方
 
 1. movie-editer で `prepare`・`topics`・`candidates`・`make` などを実行すると、その動画の記録が Firestore に自動で送られる（まとめて送り直すときは `python -m shorts publish`）。
-2. 公開先を開き、Google でログインする。
+2. 公開先を開き、メールアドレスとパスワードでログインする。
 3. 一覧から動画を選ぶ。
 
 ## Firebase の設定
 
-初回の設定（Firebase プロジェクト・Firestore のルール・Google ログイン・movie-editer の鍵・GitHub Pages）は [docs/firebase-setup.md](docs/firebase-setup.md) にまとめています。データは Firestore の `videos` コレクションに動画 1 本 1 ドキュメントで入り、中身は movie-editer の `shorts/publish.py` が書く JSON です。
+初回の設定（Firebase プロジェクト・Firestore のルール・ログイン用のアカウント・movie-editer の鍵・GitHub Pages）は [docs/firebase-setup.md](docs/firebase-setup.md) にまとめています。データは Firestore の `videos` コレクションに動画 1 本 1 ドキュメントで入り、中身は movie-editer の `shorts/publish.py` が書く JSON です。
 
 ## 技術スタック
 

@@ -1,13 +1,6 @@
-// Firebase の初期化と、Google ログイン・Firestore の読み込み
+// Firebase の初期化と、メール/パスワードのログイン・Firestore の読み込み
 import { initializeApp, type FirebaseOptions } from 'firebase/app';
-import {
-  GoogleAuthProvider,
-  getAuth,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  type User,
-} from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, getFirestore } from 'firebase/firestore';
 import type { VideoDoc } from './types';
 
@@ -31,7 +24,7 @@ export function connect(options: FirebaseOptions) {
   const db = getFirestore(app);
   return {
     onUser: (cb: (user: User | null) => void) => onAuthStateChanged(auth, cb),
-    signIn: () => signInWithPopup(auth, new GoogleAuthProvider()),
+    signIn: (email: string, password: string) => signInWithEmailAndPassword(auth, email, password),
     signOut: () => signOut(auth),
     async listVideos(): Promise<VideoDoc[]> {
       const snap = await getDocs(collection(db, COLLECTION));
