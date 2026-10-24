@@ -49,10 +49,31 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
     ? statusChip(active)
     : `<button class='${done ? '' : 'primary'} small' data-request=candidates data-video="${esc(s.rel)}" data-redo="${done ? 1 : ''}">` +
       `${done ? '作り直す' : 'トピックと候補を作る'}</button>`;
-  const slash = s.rel.lastIndexOf('/');
-  const folder = slash >= 0 ? `<div class='muted small'>${esc(s.rel.slice(0, slash))}/</div>` : '';
   const name = hasOutput ? `<a href="${esc(videoUrl(base, s.name))}">${esc(s.name)}</a>` : esc(s.name);
-  return `<tr><td>${name}${folder}</td><td>${chips}</td><td>${action}</td></tr>`;
+  return `<tr><td>${name}</td><td>${chips}</td><td>${action}</td></tr>`;
+}
+
+/** 動画のあるフォルダ（video_dir からの相対パス。直下は ''） */
+export function folderOf(rel: string): string {
+  const slash = rel.lastIndexOf('/');
+  return slash >= 0 ? rel.slice(0, slash) : '';
+}
+
+/** フォルダごとにまとめる。新しい順（フォルダ名の逆順。直下は最後） */
+export function groupByFolder(items: SourceItem[]): [string, SourceItem[]][] {
+  const groups = new Map<string, SourceItem[]>();
+  for (const s of items) {
+    const f = folderOf(s.rel);
+    groups.set(f, [...(groups.get(f) ?? []), s]);
+  }
+  return [...groups].sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a < b ? 1 : a > b ? -1 : 0));
+}
+
+/** 最初に開いておくフォルダ：いちばん新しいフォルダと、処理待ち・処理中の依頼があるフォルダ */
+export function defaultOpenFolders(groups: [string, SourceItem[]][], active: Map<string, RequestDoc>): Set<string> {
+  const open = new Set<string>(groups.length ? [groups[0][0]] : []);
+  for (const rel of active.keys()) open.add(folderOf(rel));
+  return open;
 }
 
 function requestRow(r: RequestDoc, base: string): string {
@@ -68,8 +89,17 @@ function requestRow(r: RequestDoc, base: string): string {
   return `<tr><td>${statusChip(r)}</td><td>${what}${link}${detail}</td><td class='t muted small'>${esc(when)}</td></tr>`;
 }
 
-/** 元動画と依頼のセクション。outputs は出力一覧にある動画名（動画ページへのリンクを付ける） */
-export function sourcesBody(src: SourcesDoc | null, requests: RequestDoc[], base: string, outputs: Set<string>): string {
+/**
+ * 元動画と依頼のセクション。outputs は出力一覧にある動画名（動画ページへのリンクを付ける）
+ * 元動画はフォルダ（月別フォルダなど）ごとに折りたたむ。open は開いておくフォルダ（null なら defaultOpenFolders）
+ */
+export function sourcesBody(
+  src: SourcesDoc | null,
+  requests: RequestDoc[],
+  base: string,
+  outputs: Set<string>,
+  open: Set<string> | null = null,
+): string {
   const items = parseSources(src);
   const active = activeRequests(requests);
   const scanning = requests.some((r) => r.action === 'scan' && (r.status === 'queued' || r.status === 'running'));
@@ -77,10 +107,25 @@ export function sourcesBody(src: SourcesDoc | null, requests: RequestDoc[], base
     `<p class='muted small'>Mac で <code>python -m shorts watch</code> を起動している間に処理されます（止まっている間の依頼は、次に起動したときに処理）。` +
     (src ? ` 一覧の更新：${esc(localTime(src.updated))}` : '') +
     ` <button class=small data-request=scan ${scanning ? 'disabled' : ''}>${scanning ? '更新を待っています' : '一覧を更新'}</button></p>`;
+  const groups = groupByFolder(items);
+  const opened = open ?? defaultOpenFolders(groups, active);
+  const folder = ([f, list]: [string, SourceItem[]]) => {
+    const todo = list.filter((s) => !((s.topics ?? 0) > 0 && (s.candidates ?? 0) > 0)).length;
+    const busy = list.filter((s) => active.has(s.rel)).length;
+    const chips =
+      `<span class=chip>${list.length} 本</span>` +
+      (todo ? `<span class=chip>未作成 ${todo}</span>` : '') +
+      (busy ? `<span class='chip ok'>処理中・待機中 ${busy}</span>` : '');
+    return (
+      `<details class=folder data-folder="${esc(f)}" ${opened.has(f) ? 'open' : ''}>` +
+      `<summary><strong>${f ? esc(f) + '/' : '（直下）'}</strong> ${chips}</summary>` +
+      '<div class=scroll><table><thead><tr><th>動画名</th><th>状態</th><th>依頼</th></tr></thead><tbody>' +
+      list.map((s) => sourceRow(s, active.get(s.rel), base, outputs.has(s.name))).join('') +
+      '</tbody></table></div></details>'
+    );
+  };
   const table = items.length
-    ? '<div class=scroll><table><thead><tr><th>動画名</th><th>状態</th><th>依頼</th></tr></thead><tbody>' +
-      items.map((s) => sourceRow(s, active.get(s.rel), base, outputs.has(s.name))).join('') +
-      '</tbody></table></div>'
+    ? groups.map(folder).join('')
     : `<p class=muted>${src ? 'video_dir に動画がありません。' : 'まだ一覧が送られていません。Mac で python -m shorts watch を起動すると、ここに出ます。'}</p>`;
   const history = requests.length
     ? '<h2 id=requests>依頼</h2><div class=scroll><table><thead><tr><th>状態</th><th>内容</th><th>日時</th></tr></thead><tbody>' +
