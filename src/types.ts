@@ -102,3 +102,42 @@ export interface Memo {
   files?: { name: string; desc: string }[];
   extra?: Record<string, string[]>;
 }
+
+// ---- 元動画の一覧と、ビューアからの依頼（movie-editer の shorts/remote.py・watch コマンド）
+
+/** Firestore の sources/all のドキュメント。data は SourceItem[] の JSON */
+export interface SourcesDoc {
+  updated: string; // 送った日時（ISO 8601）
+  count: number;
+  data: string;
+}
+
+/** video_dir の元動画1本と、その出力フォルダの状態 */
+export interface SourceItem {
+  name: string; // 動画名（出力フォルダ名。ファイル名から拡張子を除いたもの）
+  rel: string; // video_dir からの相対パス（依頼の video に使う）
+  size: number;
+  mtime: string;
+  transcript: boolean;
+  topics: number | null; // topics.yaml の件数（無ければ null、読めなければ -1）
+  candidates: number | null;
+  shorts: number;
+}
+
+export type RequestAction = 'candidates' | 'scan';
+export type RequestStatus = 'queued' | 'running' | 'done' | 'error';
+
+/** Firestore の requests/{id}。ビューアが queued で書き、watch が状態を書き戻す */
+export interface RequestDoc {
+  id: string;
+  action: RequestAction;
+  video: string; // SourceItem.rel（scan は空）
+  status: RequestStatus;
+  created: Date | null;
+  by: string;
+  started?: string;
+  finished?: string;
+  step?: string;
+  log?: string; // Claude Code の報告
+  error?: string;
+}
