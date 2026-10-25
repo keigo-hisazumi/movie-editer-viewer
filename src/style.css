@@ -45,3 +45,7 @@ details.folder{margin:0 0 8px}
 details.folder>summary{cursor:pointer;padding:6px 10px;background:var(--card);border:1px solid var(--line);border-radius:8px}
 details.folder[open]>summary{border-radius:8px 8px 0 0;border-bottom:none}
 details.folder table{border-radius:0 0 8px 8px}
+ol.steps{margin:0 0 8px;padding-left:20px}
+.stagebar{position:sticky;top:48px;z-index:4;background:var(--bg);padding:6px 0 8px}
+td input[type=checkbox]{width:18px;height:18px}
+table.topics td:nth-child(5){min-width:10em}table.topics td:nth-child(6){min-width:9em}

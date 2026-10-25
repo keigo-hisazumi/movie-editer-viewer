@@ -1,5 +1,6 @@
 // 一覧・動画ごとのページの HTML（movie-editer の shorts/viewer.py の serve と同じ内容・見た目）
 import { dur, esc, g, hms, localTime, shortTime, signed } from './format';
+import { activeByTopic, checkCell, cutsSection, requestsSection, stageBar, stageCell, topicCuts, type StageCtx } from './stages';
 import type { Candidate, Memo, Short, VideoData, VideoDoc } from './types';
 
 /** 動画ページの URL（?v=動画名。# はページ内の移動に使う） */
@@ -17,6 +18,7 @@ export function indexBody(docs: VideoDoc[], base: string): string {
       const chips: string[] = [];
       if (d.topics_count) chips.push(`<span class=chip>トピック ${d.topics_count}</span>`);
       if (d.candidates_count) chips.push(`<span class=chip>候補 ${d.candidates_count}</span>`);
+      if (d.cuts_count) chips.push(`<span class=chip>カット ${d.cuts_count}</span>`);
       if (d.shorts_count) chips.push(`<span class='chip ok'>ショート ${d.shorts_count}</span>`);
       return (
         `<tr><td><a href="${esc(videoUrl(base, d.name))}">${esc(d.name)}</a></td>` +
@@ -37,7 +39,7 @@ function headingHtml(s: string): string {
   return esc(s).replace(/\[(.+?)\]/g, '<em>$1</em>');
 }
 
-function topicsSection(v: VideoData): [string, Map<number, string>] {
+function topicsSection(v: VideoData, ctx: StageCtx | null): [string, Map<number, string>] {
   const names = new Map<number, string>();
   if (v.topics_error) {
     return [`<h2 id=topics>トピック</h2><p class=err>topics.yaml を読めません：${esc(v.topics_error)}</p>`, names];
@@ -49,6 +51,8 @@ function topicsSection(v: VideoData): [string, Map<number, string>] {
     return [`<h2 id=topics>トピック</h2><p class=muted>${msg}</p>`, names];
   }
   const topics = v.topics;
+  const cuts = topicCuts(v);
+  const active = activeByTopic(ctx?.requests ?? []);
   const rows = topics.map((t, i) => {
     names.set(t.id, t.title);
     const end = i + 1 < topics.length ? topics[i + 1].start : v.stream_length;
@@ -57,15 +61,15 @@ function topicsSection(v: VideoData): [string, Map<number, string>] {
       ? '<ul class=small>' + t.points.map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>'
       : '';
     return (
-      `<tr id=topic-${t.id}><td class=t>${t.id}</td><td class=t>${shortTime(t.start)}</td>` +
+      `<tr id=topic-${t.id}>${checkCell(t.id, ctx, active)}<td class=t>${t.id}</td><td class=t>${shortTime(t.start)}</td>` +
       `<td class=t>${esc(length)}</td><td><strong>${esc(t.title)}</strong>` +
-      `<div class='muted small'>${esc(t.summary)}</div>${points}</td></tr>`
+      `<div class='muted small'>${esc(t.summary)}</div>${points}</td>${stageCell(t.id, cuts.get(t.id), ctx, active)}</tr>`
     );
   });
   const chapters = topics.map((t) => `${shortTime(t.start)} ${t.title}`).join('\n');
   const html =
-    `<h2 id=topics>トピック（${topics.length} 件）</h2><div class=scroll><table>` +
-    '<thead><tr><th>#</th><th>開始</th><th>長さ</th><th>タイトル・内容</th></tr></thead><tbody>' +
+    `<h2 id=topics>トピック（${topics.length} 件）</h2>${stageBar(v, ctx)}<div class=scroll><table class=topics>` +
+    '<thead><tr><th>選択</th><th>#</th><th>開始</th><th>長さ</th><th>タイトル・内容</th><th>カット・ショート</th></tr></thead><tbody>' +
     rows.join('') +
     '</tbody></table></div>' +
     '<details><summary class=small>チャプター（YouTube の概要欄にそのまま貼れる形）</summary>' +
@@ -123,12 +127,13 @@ function lines(items: string[]): string {
   return items.length ? items.join('<br>') : '<span class=muted>なし</span>';
 }
 
-function shortCard(s: Short): string {
+/** ショートのカード。id は要素の id（段階式のショートは topic_XX-short。無ければ s.name） */
+function shortCard(s: Short, id: string = s.name): string {
   const files = s.files.map(esc).join(', ');
   const head = `<div class='muted small'>${esc(s.name)}${files ? ' ・ ' + files : ''}</div>`;
   const memo: Memo | null = s.memo;
   if (!memo) {
-    return `<div class=card id="${esc(s.name)}">${head}<p class=muted>memo.json がありません</p></div>`;
+    return `<div class=card id="${esc(id)}">${head}<p class=muted>memo.json がありません</p></div>`;
   }
   const c = memo.candidate ?? {};
   const removed =
@@ -139,7 +144,12 @@ function shortCard(s: Short): string {
     `<span class=chip>${Number(memo.duration ?? 0).toFixed(1)}秒</span>`,
     `<span class=chip>カット ${(memo.cuts ?? []).length} 個</span>`,
   ];
-  if (c.id !== undefined && c.id !== null) chips.push(`<a class=chip href="#cand-${esc(c.id)}">候補${esc(c.id)}</a>`);
+  if (memo.topic !== undefined && memo.topic !== null) {
+    chips.push(`<a class=chip href="#topic-${esc(memo.topic)}">トピック${esc(memo.topic)}</a>`);
+    if (memo.source_xml) chips.push(`<span class=chip>カット：${esc(memo.source_xml)}</span>`);
+  } else if (c.id !== undefined && c.id !== null) {
+    chips.push(`<a class=chip href="#cand-${esc(c.id)}">候補${esc(c.id)}</a>`);
+  }
   if (memo.note) chips.push(`<span class='chip warn'>${esc(memo.note)}</span>`);
   const sound: string[] = [];
   if (memo.bgm) {
@@ -153,6 +163,7 @@ function shortCard(s: Short): string {
   for (const n of memo.sound_notes ?? []) sound.push(`<span class=err>注意：${esc(n)}</span>`);
   const images = (memo.images ?? []).map((x) => `${x.start.toFixed(1)}〜${x.end.toFixed(1)}秒 ${esc(x.name)}`);
   for (const n of memo.image_notes ?? []) images.push(`<span class=err>注意：${esc(n)}</span>`);
+  for (const n of memo.source_notes ?? []) sound.push(`<span class=err>注意（読み込んだ XML）：${esc(n)}</span>`);
   const items: [string, string][] = [
     [
       '区間',
@@ -187,13 +198,15 @@ function shortCard(s: Short): string {
   }
   for (const [k, v] of Object.entries(memo.extra ?? {})) items.push([k, lines(v.map(esc))]);
   return (
-    `<div class=card id="${esc(s.name)}">${head}<h3>${esc(c.title || s.name)}</h3>` +
+    `<div class=card id="${esc(id)}">${head}<h3>${esc(c.title || s.name)}</h3>` +
     `<div>${chips.join('')}</div><dl>${dl(items)}</dl></div>`
   );
 }
 
-export function videoBody(v: VideoData): string {
-  const [topicsHtml, topicNames] = topicsSection(v);
+/** 動画ページ。ctx は段階式の依頼に要るもの（null なら依頼のボタンは出さない・使えない） */
+export function videoBody(v: VideoData, ctx: StageCtx | null = null, base = '/'): string {
+  const [topicsHtml, topicNames] = topicsSection(v, ctx);
+  const cutsHtml = cutsSection(v, topicNames, (id, tc) => shortCard({ name: tc.name, files: tc.files, memo: tc.memo }, id));
   const made = new Map<number, string[]>();
   for (const s of v.shorts) {
     const cid = s.memo?.candidate?.id;
@@ -210,7 +223,7 @@ export function videoBody(v: VideoData): string {
       v.candidates.map((c) => candidateCard(c, topicNames, made)).join('');
   }
   const shortsHtml = v.shorts.length
-    ? `<h2 id=shorts>ショート（${v.shorts.length} 本）</h2>` + v.shorts.map(shortCard).join('')
+    ? `<h2 id=shorts>ショート（${v.shorts.length} 本）</h2>` + v.shorts.map((s) => shortCard(s)).join('')
     : '<h2 id=shorts>ショート</h2><p class=muted>まだ作っていません。</p>';
-  return `<h1>${esc(v.name)}</h1>${topicsHtml}${candsHtml}${shortsHtml}`;
+  return `<h1>${esc(v.name)}</h1>${topicsHtml}${cutsHtml}${requestsSection(ctx, base)}${candsHtml}${shortsHtml}`;
 }

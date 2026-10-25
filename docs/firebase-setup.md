@@ -75,7 +75,7 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
 
 以後は `prepare`・`transcribe`・`topics`・`candidates`・`make` の後に、その動画が自動で送られます。
 
-ブラウザからトピックと候補作りを頼むときは、`config.local.yaml` に `video_dir`（元動画のフォルダ）も書き、Mac のターミナルで次を起動したままにしておきます（止めるときは Ctrl+C）。起動すると元動画の一覧が送られ、ビューアの「元動画」に出ます。
+ブラウザからトピック・カット・ショート作りを頼むときは、`config.local.yaml` に `video_dir`（元動画のフォルダ）も書き、Mac のターミナルで次を起動したままにしておきます（止めるときは Ctrl+C）。起動すると元動画の一覧が送られ、ビューアの「元動画」に出ます。
 
 ```bash
 .venv/bin/python -m shorts watch
