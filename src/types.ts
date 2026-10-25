@@ -13,6 +13,7 @@ export interface VideoDoc {
   topics_count: number;
   candidates_count: number;
   shorts_count: number;
+  cuts_count?: number; // 段階式のカットの数（topic_XX/。前の版の publish には無い）
   data: string; // VideoData の JSON
 }
 
@@ -27,6 +28,39 @@ export interface VideoData {
   candidates: Candidate[] | null;
   candidates_error: string;
   shorts: Short[];
+  // 段階式（トピック → カット → ショート）。前の版の publish には無い
+  cuts?: Candidate[] | null; // cuts.yaml（id はトピックの ID）
+  cuts_error?: string;
+  topic_cuts?: TopicCut[];
+}
+
+/** output/<動画名>/topic_XX/ のカット・微調整した XML・ショートの状態 */
+export interface TopicCut {
+  name: string; // topic_XX
+  topic: number;
+  files: string[];
+  cut: CutMemo | null; // cut.json
+  adjusted: string | null; // 人が微調整して書き出した XML のファイル名
+  adjusted_mtime: string | null;
+  memo: Memo | null; // ショートの memo.json（まだなら null）
+}
+
+/** topic_XX/cut.json（movie-editer の shorts/topiccut.py の make_cut） */
+export interface CutMemo {
+  topic: number;
+  title: string;
+  titles: string[];
+  heading: string;
+  summary: string;
+  reason: string;
+  start: string;
+  end: string;
+  duration: number;
+  removed: Record<string, number>;
+  cuts: [string, string][];
+  drop: [string, string][];
+  files: { name: string; desc: string }[];
+  made: string;
 }
 
 export interface Topic {
@@ -101,6 +135,9 @@ export interface Memo {
   image_notes?: string[];
   files?: { name: string; desc: string }[];
   extra?: Record<string, string[]>;
+  topic?: number; // 段階式のショート（topic_XX/）
+  source_xml?: string; // 読み込んだ微調整の XML
+  source_notes?: string[];
 }
 
 // ---- 元動画の一覧と、ビューアからの依頼（movie-editer の shorts/remote.py・watch コマンド）
@@ -122,9 +159,12 @@ export interface SourceItem {
   topics: number | null; // topics.yaml の件数（無ければ null、読めなければ -1）
   candidates: number | null;
   shorts: number;
+  cuts?: number; // 段階式のカットの数（topic_XX/）
+  topic_shorts?: number; // 段階式のショートの数
 }
 
-export type RequestAction = 'candidates' | 'scan';
+/** topics：トピックだけ／cut：選んだトピックのカット／short：微調整した XML からショート／candidates：トピックと候補（前のやり方） */
+export type RequestAction = 'topics' | 'cut' | 'short' | 'candidates' | 'scan';
 export type RequestStatus = 'queued' | 'running' | 'done' | 'error';
 
 /** Firestore の requests/{id}。ビューアが queued で書き、watch が状態を書き戻す */
@@ -132,6 +172,7 @@ export interface RequestDoc {
   id: string;
   action: RequestAction;
   video: string; // SourceItem.rel（scan は空）
+  topics?: number[]; // cut・short のトピック ID
   status: RequestStatus;
   created: Date | null;
   by: string;

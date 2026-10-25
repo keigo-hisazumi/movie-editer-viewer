@@ -3,13 +3,35 @@ import { esc, localTime } from './format';
 import { videoUrl } from './render';
 import type { RequestDoc, SourceItem, SourcesDoc } from './types';
 
-/** 処理待ち・処理中の依頼（同じ動画にもう一度頼ませない） */
+/** 処理待ち・処理中の依頼か */
+export function isActive(r: RequestDoc): boolean {
+  return r.status === 'queued' || r.status === 'running';
+}
+
+/** 処理待ち・処理中の依頼（scan 以外）を動画ごとに（同じ動画にもう一度頼ませない） */
 export function activeRequests(requests: RequestDoc[]): Map<string, RequestDoc> {
   const m = new Map<string, RequestDoc>();
   for (const r of requests) {
-    if (r.action === 'candidates' && (r.status === 'queued' || r.status === 'running') && !m.has(r.video)) m.set(r.video, r);
+    if (r.action !== 'scan' && isActive(r) && !m.has(r.video)) m.set(r.video, r);
   }
   return m;
+}
+
+/** 依頼の内容（一覧の「内容」） */
+export function requestLabel(r: RequestDoc): string {
+  const topics = r.topics?.length ? `（トピック ${r.topics.join('・')}）` : '';
+  switch (r.action) {
+    case 'scan':
+      return '一覧の更新';
+    case 'topics':
+      return `トピック：${r.video}`;
+    case 'cut':
+      return `カット${topics}：${r.video}`;
+    case 'short':
+      return `ショート${topics}：${r.video}`;
+    default:
+      return `トピックと候補：${r.video}`;
+  }
 }
 
 /** 元動画の一覧を読む。読めなければ空 */
@@ -29,7 +51,7 @@ function countChip(label: string, n: number | null, cls = ''): string {
   return `<span class='chip ${cls}'>${label} ${n}</span>`;
 }
 
-function statusChip(r: RequestDoc): string {
+export function statusChip(r: RequestDoc): string {
   if (r.status === 'queued') return "<span class=chip>待機中</span>";
   if (r.status === 'running') return `<span class='chip ok'>処理中${r.step ? `：${esc(r.step)}` : ''}</span>`;
   if (r.status === 'done') return "<span class='chip ok'>完了</span>";
@@ -42,13 +64,18 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
       s.transcript ? '<span class=chip>文字起こし済み</span>' : '',
       countChip('トピック', s.topics),
       countChip('候補', s.candidates),
-      s.shorts ? countChip('ショート', s.shorts, 'ok') : '',
+      s.cuts ? countChip('カット', s.cuts) : '',
+      s.shorts + (s.topic_shorts ?? 0) ? countChip('ショート', s.shorts + (s.topic_shorts ?? 0), 'ok') : '',
     ].join('') || '<span class=muted>未処理</span>';
-  const done = (s.topics ?? 0) > 0 && (s.candidates ?? 0) > 0;
+  const done = (s.topics ?? 0) > 0;
+  // 段階式の1：トピックだけを作る。作った後は動画のページでトピックを選んでカットを頼む
   const action = active
     ? statusChip(active)
-    : `<button class='${done ? '' : 'primary'} small' data-request=candidates data-video="${esc(s.rel)}" data-redo="${done ? 1 : ''}">` +
-      `${done ? '作り直す' : 'トピックと候補を作る'}</button>`;
+    : done && hasOutput
+      ? `<a class=small href="${esc(videoUrl(base, s.name))}#topics">トピックを選ぶ</a> ` +
+        `<button class=small data-request=topics data-video="${esc(s.rel)}" data-redo=1>トピックを作り直す</button>`
+      : `<button class='primary small' data-request=topics data-video="${esc(s.rel)}" data-redo="${done ? 1 : ''}">` +
+        `${done ? 'トピックを作り直す' : 'トピックを作る'}</button>`;
   const name = hasOutput ? `<a href="${esc(videoUrl(base, s.name))}">${esc(s.name)}</a>` : esc(s.name);
   return `<tr><td>${name}</td><td>${chips}</td><td>${action}</td></tr>`;
 }
@@ -76,10 +103,10 @@ export function defaultOpenFolders(groups: [string, SourceItem[]][], active: Map
   return open;
 }
 
-function requestRow(r: RequestDoc, base: string): string {
-  const what = r.action === 'scan' ? '一覧の更新' : `トピックと候補：${esc(r.video)}`;
+export function requestRow(r: RequestDoc, base: string): string {
+  const what = esc(requestLabel(r));
   const name = r.video.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
-  const link = r.action === 'candidates' && r.status === 'done' ? ` <a href="${esc(videoUrl(base, name))}">見る</a>` : '';
+  const link = r.action !== 'scan' && r.status === 'done' ? ` <a href="${esc(videoUrl(base, name))}">見る</a>` : '';
   const when = r.finished ? localTime(r.finished) : r.created ? localTime(r.created.toISOString()) : '';
   const detail = r.error
     ? `<details open><summary class=small>エラー</summary><pre>${esc(r.error)}</pre></details>`
@@ -110,7 +137,7 @@ export function sourcesBody(
   const groups = groupByFolder(items);
   const opened = open ?? defaultOpenFolders(groups, active);
   const folder = ([f, list]: [string, SourceItem[]]) => {
-    const todo = list.filter((s) => !((s.topics ?? 0) > 0 && (s.candidates ?? 0) > 0)).length;
+    const todo = list.filter((s) => !((s.topics ?? 0) > 0)).length;
     const busy = list.filter((s) => active.has(s.rel)).length;
     const chips =
       `<span class=chip>${list.length} 本</span>` +

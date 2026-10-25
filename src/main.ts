@@ -4,8 +4,9 @@ import { FirebaseError } from 'firebase/app';
 import { connect, firebaseOptions } from './firebase';
 import { esc } from './format';
 import { indexBody, videoBody, videoUrl } from './render';
-import { sourcesBody } from './sources';
-import { SCHEMA, type RequestDoc, type SourcesDoc, type VideoData } from './types';
+import { parseSources, sourcesBody } from './sources';
+import { topicCuts, videoRequests, type StageCtx } from './stages';
+import { SCHEMA, type RequestAction, type RequestDoc, type SourcesDoc, type VideoData, type VideoDoc } from './types';
 
 const BASE = import.meta.env.BASE_URL;
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -13,7 +14,7 @@ const crumb = document.querySelector<HTMLElement>('header .crumb')!;
 const nav = document.querySelector<HTMLElement>('#nav')!;
 const userBox = document.querySelector<HTMLElement>('#user')!;
 
-function show(body: string, crumbs: [string, string | null][] = [], tabs: [string, string][] = []) {
+function show(body: string, crumbs: [string, string | null][] = [], tabs: [string, string][] = [], scroll = true) {
   crumb.innerHTML = [['出力一覧', BASE] as [string, string | null], ...crumbs]
     .map(([t, u]) => (u ? `<a href="${esc(u)}">${esc(t)}</a>` : esc(t)))
     .join(' / ');
@@ -22,7 +23,7 @@ function show(body: string, crumbs: [string, string | null][] = [], tabs: [strin
     : '';
   app.innerHTML = body;
   // 描画が読み込みの後なので、URL の #（候補・ショートへのリンク）の位置へ自分で移動する
-  if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+  if (scroll && location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
 }
 
 /** ログインの失敗の理由 */
@@ -43,6 +44,92 @@ function errorMessage(e: unknown): string {
 }
 
 type Fb = ReturnType<typeof connect>;
+
+/** 動画ページ：動画のドキュメント・元動画の一覧・依頼を見張って描き直し、トピックのカット・ショートを頼めるようにする */
+function watchVideo(fb: Fb, name: string): () => void {
+  let doc: VideoDoc | null | undefined; // undefined はまだ読めていない
+  let src: SourcesDoc | null | undefined;
+  let requests: RequestDoc[] | undefined;
+  let first = true;
+  const checked = new Set<number>();
+  let data: VideoData | null = null;
+  let ctx: StageCtx | null = null;
+  const draw = () => {
+    if (doc === undefined) return;
+    if (!doc) {
+      show(`<h1>${esc(name)}</h1><p class=muted>見つかりません。</p>`, [[name, null]]);
+      return;
+    }
+    data = JSON.parse(doc.data) as VideoData;
+    if (data.schema > SCHEMA) {
+      show(`<h1>${esc(name)}</h1><p class=err>新しい形式のデータです。ビューアを更新してください。</p>`, [[name, videoUrl(BASE, name)]]);
+      return;
+    }
+    ctx = null;
+    if (src !== undefined && requests !== undefined) {
+      const rel = parseSources(src).find((s) => s.name === name)?.rel ?? null;
+      ctx = { rel, requests: videoRequests(requests, rel, name), checked };
+    }
+    show(videoBody(data, ctx, BASE), [[name, null]], [
+      ['トピック', 'topics'],
+      ['カット', 'cuts'],
+      ['候補', 'candidates'],
+      ['ショート', 'shorts'],
+    ], first);
+    first = false;
+  };
+  const fail = (e: Error) => show(`<p class=err>${esc(errorMessage(e))}</p>`);
+  const send = (action: RequestAction, topics: number[], button: HTMLButtonElement) => {
+    if (!ctx?.rel) return;
+    button.disabled = true;
+    fb.addRequest(action, ctx.rel, topics)
+      .then(() => {
+        if (action === 'cut') checked.clear();
+      })
+      .catch((e: unknown) => {
+        button.disabled = false;
+        alert(errorMessage(e));
+      });
+  };
+  const onChange = (ev: Event) => {
+    const box = ev.target as HTMLInputElement;
+    if (box.dataset.topic === undefined) return;
+    const t = Number(box.dataset.topic);
+    if (box.checked) checked.add(t);
+    else checked.delete(t);
+    draw();
+  };
+  const onClick = (ev: Event) => {
+    const button = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-stage]');
+    if (!button || !data) return;
+    const cuts = topicCuts(data);
+    if (button.dataset.stage === 'cut') {
+      const topics = [...checked].sort((a, b) => a - b);
+      if (!topics.length) return;
+      const made = topics.filter((t) => cuts.get(t)?.cut);
+      if (made.length && !confirm(`トピック ${made.join('・')} のカットは作成済みです。作り直すと今のカットの XML は書き換わります（微調整して書き出した XML はそのまま残ります）。よいですか？`)) return;
+      send('cut', topics, button);
+      return;
+    }
+    const t = Number(button.dataset.topic);
+    const tc = cuts.get(t);
+    if (!tc?.adjusted && !confirm(`トピック ${t} の微調整した XML が topic_${String(t).padStart(2, '0')}/ にありません。カットの XML のままショートを作りますか？`)) return;
+    if (button.dataset.redo && tc?.adjusted && !confirm(`トピック ${t} のショートを ${tc.adjusted} から作り直します。よいですか？`)) return;
+    send('short', [t], button);
+  };
+  app.addEventListener('change', onChange);
+  app.addEventListener('click', onClick);
+  const stops = [
+    fb.onVideo(name, (d) => ((doc = d), draw()), fail),
+    fb.onSources((d) => ((src = d), draw()), fail),
+    fb.onRequests((r) => ((requests = r), draw()), fail),
+  ];
+  return () => {
+    stops.forEach((stop) => stop());
+    app.removeEventListener('change', onChange);
+    app.removeEventListener('click', onClick);
+  };
+}
 
 /** 元動画・依頼のセクションを Firestore の変更に合わせて描き直す。戻り値で見張りをやめる */
 function watchSources(fb: Fb, outputs: Set<string>): () => void {
@@ -82,9 +169,11 @@ function watchSources(fb: Fb, outputs: Set<string>): () => void {
   box.addEventListener('click', (ev) => {
     const button = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-request]');
     if (!button) return;
-    const action = button.dataset.request === 'scan' ? 'scan' : 'candidates';
+    const action: RequestAction = button.dataset.request === 'scan' ? 'scan' : button.dataset.request === 'candidates' ? 'candidates' : 'topics';
     const video = button.dataset.video ?? '';
-    if (button.dataset.redo && !confirm(`${video} のトピックと候補を作り直します（今の topics.yaml・candidates.yaml は書き換わります）。よいですか？`)) return;
+    const what = action === 'topics' ? 'トピック（topics.yaml）' : 'トピックと候補（topics.yaml・candidates.yaml）';
+    const warn = action === 'topics' ? 'トピックの番号が変わると、作ったカット（topic_XX/）と合わなくなります。' : '';
+    if (button.dataset.redo && !confirm(`${video} の${what}を作り直します（今のファイルは書き換わります）。${warn}よいですか？`)) return;
     button.disabled = true;
     fb.addRequest(action, video).catch((e: unknown) => {
       button.disabled = false;
@@ -142,21 +231,7 @@ async function main() {
         return;
       }
       document.title = name;
-      const doc = await fb.getVideo(name);
-      if (!doc) {
-        show(`<h1>${esc(name)}</h1><p class=muted>見つかりません。</p>`, [[name, null]]);
-        return;
-      }
-      const data = JSON.parse(doc.data) as VideoData;
-      if (data.schema > SCHEMA) {
-        show(`<h1>${esc(name)}</h1><p class=err>新しい形式のデータです。ビューアを更新してください。</p>`, [[name, videoUrl(BASE, name)]]);
-        return;
-      }
-      show(videoBody(data), [[name, null]], [
-        ['トピック', 'topics'],
-        ['候補', 'candidates'],
-        ['ショート', 'shorts'],
-      ]);
+      stopSources = watchVideo(fb, name);
     } catch (e) {
       show(`<p class=err>${esc(errorMessage(e))}</p>`);
     }

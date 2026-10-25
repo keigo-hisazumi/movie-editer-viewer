@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeRequests, groupByFolder, sourcesBody } from './sources';
+import { activeRequests, groupByFolder, requestLabel, sourcesBody } from './sources';
 import type { RequestDoc, SourceItem, SourcesDoc } from './types';
 
 const item = (rel: string, over: Partial<SourceItem> = {}): SourceItem => ({
@@ -19,10 +19,13 @@ const req = (over: Partial<RequestDoc>): RequestDoc => ({
 });
 
 describe('sourcesBody', () => {
-  it('未処理の動画には「トピックと候補を作る」、作成済みには「作り直す」のボタンを出す', () => {
-    const html = sourcesBody(src([item('202610/20261017.mp4'), item('20261001.mp4', { transcript: true, topics: 5, candidates: 3 })]), [], '/', new Set(['20261001']));
-    expect(html).toContain('data-video="202610/20261017.mp4" data-redo="">トピックと候補を作る');
-    expect(html).toContain('data-video="20261001.mp4" data-redo="1">作り直す');
+  it('未処理の動画には「トピックを作る」、作成済みには「トピックを選ぶ」と「トピックを作り直す」を出す', () => {
+    const html = sourcesBody(src([item('202610/20261017.mp4'), item('20261001.mp4', { transcript: true, topics: 5, cuts: 2, shorts: 1, topic_shorts: 1 })]), [], '/', new Set(['20261001']));
+    expect(html).toContain('data-request=topics data-video="202610/20261017.mp4" data-redo="">トピックを作る');
+    expect(html).toContain('href="/?v=20261001#topics">トピックを選ぶ');
+    expect(html).toContain('data-video="20261001.mp4" data-redo=1>トピックを作り直す');
+    expect(html).toContain('カット 2');
+    expect(html).toContain('ショート 2');
     expect(html).toContain('href="/?v=20261001"');
     expect(html).not.toContain('href="/?v=20261017"');
   });
@@ -41,13 +44,18 @@ describe('sourcesBody', () => {
 });
 
 describe('activeRequests', () => {
-  it('待機中・処理中の candidates の依頼だけを動画ごとに拾う', () => {
+  it('待機中・処理中の依頼（scan 以外）だけを動画ごとに拾う', () => {
     const m = activeRequests([
       req({ video: 'a.mp4', status: 'done' }),
       req({ video: 'b.mp4', status: 'queued' }),
+      req({ action: 'cut', video: 'c.mp4', topics: [2], status: 'running' }),
       req({ action: 'scan', status: 'queued' }),
     ]);
-    expect([...m.keys()]).toEqual(['b.mp4']);
+    expect([...m.keys()]).toEqual(['b.mp4', 'c.mp4']);
+  });
+  it('依頼の内容にトピックの番号を出す', () => {
+    expect(requestLabel(req({ action: 'cut', video: 'a.mp4', topics: [2, 5] }))).toBe('カット（トピック 2・5）：a.mp4');
+    expect(requestLabel(req({ action: 'topics', video: 'a.mp4' }))).toBe('トピック：a.mp4');
   });
 });
 

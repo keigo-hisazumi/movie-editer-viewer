@@ -81,14 +81,19 @@ export function connect(options: FirebaseOptions) {
       );
     },
     /** 依頼を書く（Firestore のルールで、この形の queued の依頼だけ書ける） */
-    addRequest(action: RequestAction, video: string) {
+    addRequest(action: RequestAction, video: string, topics?: number[]) {
       return addDoc(collection(db, REQUESTS), {
         action,
         video,
+        ...(topics ? { topics } : {}),
         status: 'queued',
         created: serverTimestamp(),
         by: auth.currentUser?.email ?? '',
       });
+    },
+    /** 動画1本のドキュメントを見張る（publish で送り直されるたびに cb） */
+    onVideo(name: string, cb: (d: VideoDoc | null) => void, onError: (e: Error) => void) {
+      return onSnapshot(doc(db, COLLECTION, name), (s) => cb(s.exists() ? (s.data() as VideoDoc) : null), onError);
     },
   };
 }
