@@ -11,7 +11,7 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'OWNER_EMAIL';
     }
 
-    // 動画ごとのトピック・候補・ショート（movie-editer の publish が送る）
+    // 動画ごとのチャプター・候補・ショート（movie-editer の publish が送る）
     match /videos/{name} {
       allow read: if isOwner();
       allow write: if false;

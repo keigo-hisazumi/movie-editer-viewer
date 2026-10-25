@@ -40,7 +40,7 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
   const chips =
     [
       s.transcript ? '<span class=chip>文字起こし済み</span>' : '',
-      countChip('トピック', s.topics),
+      countChip('チャプター', s.topics),
       countChip('候補', s.candidates),
       s.shorts ? countChip('ショート', s.shorts, 'ok') : '',
     ].join('') || '<span class=muted>未処理</span>';
@@ -48,7 +48,7 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
   const action = active
     ? statusChip(active)
     : `<button class='${done ? '' : 'primary'} small' data-request=candidates data-video="${esc(s.rel)}" data-redo="${done ? 1 : ''}">` +
-      `${done ? '作り直す' : 'トピックと候補を作る'}</button>`;
+      `${done ? '作り直す' : 'チャプターと候補を作る'}</button>`;
   const name = hasOutput ? `<a href="${esc(videoUrl(base, s.name))}">${esc(s.name)}</a>` : esc(s.name);
   return `<tr><td>${name}</td><td>${chips}</td><td>${action}</td></tr>`;
 }
@@ -77,7 +77,7 @@ export function defaultOpenFolders(groups: [string, SourceItem[]][], active: Map
 }
 
 function requestRow(r: RequestDoc, base: string): string {
-  const what = r.action === 'scan' ? '一覧の更新' : `トピックと候補：${esc(r.video)}`;
+  const what = r.action === 'scan' ? '一覧の更新' : `チャプターと候補：${esc(r.video)}`;
   const name = r.video.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
   const link = r.action === 'candidates' && r.status === 'done' ? ` <a href="${esc(videoUrl(base, name))}">見る</a>` : '';
   const when = r.finished ? localTime(r.finished) : r.created ? localTime(r.created.toISOString()) : '';

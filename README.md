@@ -1,13 +1,13 @@
 # movie-editer-viewer
 
-[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・切り抜き候補・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、メール/パスワードでログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
+[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（チャプター・切り抜き候補・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、メール/パスワードでログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
 
 ## 主な機能
 
 - 元動画（movie-editer の `video_dir` の録画）の一覧と、それぞれの処理の状態
-- ボタンでトピックと候補作りを頼む（Mac の movie-editer が受け取って処理し、進み具合と結果が出る）
-- 動画ごとの出力の一覧（トピック・候補・ショートの数、更新日時）
-- トピックの一覧と、YouTube の概要欄に貼れるチャプター
+- ボタンでチャプターと候補作りを頼む（Mac の movie-editer が受け取って処理し、進み具合と結果が出る）
+- 動画ごとの出力の一覧（チャプター・候補・ショートの数、更新日時）
+- チャプターの一覧（YouTube の概要欄に貼れる形も）
 - 切り抜き候補（見出し・タイトル案・選んだ理由・外す範囲・BGM・効果音・画像）
 - 作ったショートの記録（長さ・カット・画面の文字・BGM と効果音・ファイル）
 - メール/パスワードのログインで本人だけが見られる
@@ -18,7 +18,7 @@
 2. 公開先を開き、メールアドレスとパスワードでログインする。
 3. 一覧から動画を選ぶ。
 
-トピックと候補をブラウザから頼むときは、Mac で movie-editer の `python -m shorts watch` を起動したままにしておき、「元動画」の一覧で「トピックと候補を作る」を押します。依頼は Firestore の `requests` に書かれ、watch が文字起こしと Claude Code での作成を行い、終わると動画のページに出ます。
+チャプターと候補をブラウザから頼むときは、Mac で movie-editer の `python -m shorts watch` を起動したままにしておき、「元動画」の一覧で「チャプターと候補を作る」を押します。依頼は Firestore の `requests` に書かれ、watch が文字起こしと Claude Code での作成を行い、終わると動画のページに出ます。
 
 ## Firebase の設定
 

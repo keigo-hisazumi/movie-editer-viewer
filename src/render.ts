@@ -15,7 +15,7 @@ export function indexBody(docs: VideoDoc[], base: string): string {
     .sort((a, b) => (a.name < b.name ? 1 : a.name > b.name ? -1 : 0)) // 新しい順（動画名の逆順。serve と同じ）
     .map((d) => {
       const chips: string[] = [];
-      if (d.topics_count) chips.push(`<span class=chip>トピック ${d.topics_count}</span>`);
+      if (d.topics_count) chips.push(`<span class=chip>チャプター ${d.topics_count}</span>`);
       if (d.candidates_count) chips.push(`<span class=chip>候補 ${d.candidates_count}</span>`);
       if (d.shorts_count) chips.push(`<span class='chip ok'>ショート ${d.shorts_count}</span>`);
       return (
@@ -40,13 +40,13 @@ function headingHtml(s: string): string {
 function topicsSection(v: VideoData): [string, Map<number, string>] {
   const names = new Map<number, string>();
   if (v.topics_error) {
-    return [`<h2 id=topics>トピック</h2><p class=err>topics.yaml を読めません：${esc(v.topics_error)}</p>`, names];
+    return [`<h2 id=topics>チャプター</h2><p class=err>topics.yaml を読めません：${esc(v.topics_error)}</p>`, names];
   }
   if (!v.topics) {
     const msg = v.legacy_topics
       ? '前の形式の topics.md です（python -m shorts migrate で変換する）。'
       : 'topics.yaml はまだありません。';
-    return [`<h2 id=topics>トピック</h2><p class=muted>${msg}</p>`, names];
+    return [`<h2 id=topics>チャプター</h2><p class=muted>${msg}</p>`, names];
   }
   const topics = v.topics;
   const rows = topics.map((t, i) => {
@@ -64,11 +64,11 @@ function topicsSection(v: VideoData): [string, Map<number, string>] {
   });
   const chapters = topics.map((t) => `${shortTime(t.start)} ${t.title}`).join('\n');
   const html =
-    `<h2 id=topics>トピック（${topics.length} 件）</h2><div class=scroll><table>` +
+    `<h2 id=topics>チャプター（${topics.length} 件）</h2><div class=scroll><table>` +
     '<thead><tr><th>#</th><th>開始</th><th>長さ</th><th>タイトル・内容</th></tr></thead><tbody>' +
     rows.join('') +
     '</tbody></table></div>' +
-    '<details><summary class=small>チャプター（YouTube の概要欄にそのまま貼れる形）</summary>' +
+    '<details><summary class=small>YouTube の概要欄にそのまま貼れる形</summary>' +
     `<pre>${esc(chapters)}</pre></details>`;
   return [html, names];
 }
@@ -90,7 +90,7 @@ function candidateCard(c: Candidate, topicNames: Map<number, string>, made: Map<
   if (c.titles.length) items.push(['タイトル案', c.titles.map(esc).join('<br>')]);
   if (c.topic !== null) {
     const label = `${c.topic}. ${topicNames.get(c.topic) ?? '（topics.yaml に無い）'}`;
-    items.push(['トピック', `<a href="#topic-${c.topic}">${esc(label)}</a>`]);
+    items.push(['チャプター', `<a href="#topic-${c.topic}">${esc(label)}</a>`]);
   }
   if (c.summary) items.push(['内容', esc(c.summary)]);
   if (c.reason) items.push(['理由', esc(c.reason)]);

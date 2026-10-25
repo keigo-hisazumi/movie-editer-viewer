@@ -84,7 +84,7 @@ function watchSources(fb: Fb, outputs: Set<string>): () => void {
     if (!button) return;
     const action = button.dataset.request === 'scan' ? 'scan' : 'candidates';
     const video = button.dataset.video ?? '';
-    if (button.dataset.redo && !confirm(`${video} のトピックと候補を作り直します（今の topics.yaml・candidates.yaml は書き換わります）。よいですか？`)) return;
+    if (button.dataset.redo && !confirm(`${video} のチャプターと候補を作り直します（今の topics.yaml・candidates.yaml は書き換わります）。よいですか？`)) return;
     button.disabled = true;
     fb.addRequest(action, video).catch((e: unknown) => {
       button.disabled = false;
@@ -153,7 +153,7 @@ async function main() {
         return;
       }
       show(videoBody(data), [[name, null]], [
-        ['トピック', 'topics'],
+        ['チャプター', 'topics'],
         ['候補', 'candidates'],
         ['ショート', 'shorts'],
       ]);

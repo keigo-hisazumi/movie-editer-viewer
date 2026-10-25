@@ -40,7 +40,7 @@ const data: VideoData = {
 
 describe('videoBody', () => {
   const html = videoBody(data);
-  it('トピックの長さは次のトピック（最後は配信の終わり）まで', () => {
+  it('チャプターの長さは次のチャプター（最後は配信の終わり）まで', () => {
     expect(html).toContain('<td class=t>5.0分</td>');
   });
   it('文字はエスケープする', () => {

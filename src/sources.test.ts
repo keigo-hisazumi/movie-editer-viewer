@@ -19,9 +19,9 @@ const req = (over: Partial<RequestDoc>): RequestDoc => ({
 });
 
 describe('sourcesBody', () => {
-  it('未処理の動画には「トピックと候補を作る」、作成済みには「作り直す」のボタンを出す', () => {
+  it('未処理の動画には「チャプターと候補を作る」、作成済みには「作り直す」のボタンを出す', () => {
     const html = sourcesBody(src([item('202610/20261017.mp4'), item('20261001.mp4', { transcript: true, topics: 5, candidates: 3 })]), [], '/', new Set(['20261001']));
-    expect(html).toContain('data-video="202610/20261017.mp4" data-redo="">トピックと候補を作る');
+    expect(html).toContain('data-video="202610/20261017.mp4" data-redo="">チャプターと候補を作る');
     expect(html).toContain('data-video="20261001.mp4" data-redo="1">作り直す');
     expect(html).toContain('href="/?v=20261001"');
     expect(html).not.toContain('href="/?v=20261017"');
