@@ -1,6 +1,7 @@
 // 動画ページの段階式（トピック → カット → 微調整 → 学習）の部分の HTML
 // トピックを選んで「カットを作る」、微調整した XML を置いたトピックで「学習させる」を頼む（movie-editer の watch が /cut・/learn で処理する）
 // ショート（/short）は movie-editer に残してあるが、いまはボタンを出さない（作ったショートがあれば表示はする）
+import { foldCard, foldSection } from './fold';
 import { dur, esc, localTime } from './format';
 import { isActive, requestRow, statusChip } from './sources';
 import type { CutMemo, LearnBrief, RequestDoc, TopicCut, VideoData } from './types';
@@ -121,7 +122,7 @@ function cutCard(tc: TopicCut, title: string): string {
       : '<span class=chip>微調整した XML なし</span>',
   );
   if (!cut) {
-    return `<div class=card id="${esc(tc.name)}"><h3>${esc(title)}</h3><div>${chips.join('')}</div><p class=muted>cut.json がありません</p></div>`;
+    return foldCard(tc.name, `<h3>${esc(title)}</h3><div>${chips.join('')}</div>`, '<p class=muted>cut.json がありません</p>');
   }
   const removed =
     Object.entries(cut.removed ?? {})
@@ -141,9 +142,10 @@ function cutCard(tc: TopicCut, title: string): string {
         "<div class='muted small'>カットの XML を Filmora で微調整し、FCP7 XML としてこのフォルダに書き出す（名前は自由）</div>",
     ],
   ];
-  return (
-    `<div class=card id="${esc(tc.name)}"><div class='muted small'>${esc(tc.name)}</div><h3>${esc(cut.title || title)}</h3>` +
-    `<div>${chips.join('')}</div><dl>${items.map(([k, s]) => `<dt>${esc(k)}</dt><dd>${s}</dd>`).join('')}</dl></div>`
+  return foldCard(
+    tc.name,
+    `<div class='muted small'>${esc(tc.name)}</div><h3>${esc(cut.title || title)}</h3><div>${chips.join('')}</div>`,
+    `<dl>${items.map(([k, s]) => `<dt>${esc(k)}</dt><dd>${s}</dd>`).join('')}</dl>`,
   );
 }
 
@@ -152,20 +154,22 @@ export function cutsSection(v: VideoData, topicNames: Map<number, string>, short
   const err = v.cuts_error ? `<p class=err>cuts.yaml を読めません：${esc(v.cuts_error)}</p>` : '';
   const items = v.topic_cuts ?? [];
   if (!items.length) {
-    return `<h2 id=cuts>カット</h2>${err}<p class=muted>まだありません。トピックを選んで「カットを作る」を押すと、ここに出ます。</p>`;
+    return foldSection('cuts', 'カット', `${err}<p class=muted>まだありません。トピックを選んで「カットを作る」を押すと、ここに出ます。</p>`);
   }
   const cards = items.map(
     (tc) => cutCard(tc, topicNames.get(tc.topic) ?? tc.name) + (tc.memo ? shortCard(`${tc.name}-short`, tc) : ''),
   );
-  return `<h2 id=cuts>カット（${items.length} 本）</h2>${err}${cards.join('')}`;
+  return foldSection('cuts', `カット（${items.length} 本）`, `${err}${cards.join('')}`);
 }
 
 /** この動画の依頼の履歴 */
 export function requestsSection(ctx: StageCtx | null, base: string): string {
   if (!ctx?.requests.length) return '';
-  return (
-    '<h2 id=requests>依頼</h2><div class=scroll><table><thead><tr><th>状態</th><th>内容</th><th>日時</th></tr></thead><tbody>' +
-    ctx.requests.map((r) => requestRow(r, base)).join('') +
-    '</tbody></table></div>'
+  return foldSection(
+    'requests',
+    `依頼（${ctx.requests.length} 件）`,
+    '<div class=scroll><table><thead><tr><th>状態</th><th>内容</th><th>日時</th></tr></thead><tbody>' +
+      ctx.requests.map((r) => requestRow(r, base)).join('') +
+      '</tbody></table></div>',
   );
 }

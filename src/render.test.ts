@@ -53,6 +53,12 @@ describe('videoBody', () => {
     expect(html).toContain('href="#short_01">short_01 作成済み');
     expect(html).toContain('ショートの題');
   });
+  it('セクション・カード・トピックの出来事はたためる（既定は開いている）', () => {
+    expect(html).toContain('<details class=sec data-fold="sec-topics" open><summary><h2 id="topics">トピック（2 件）</h2></summary>');
+    expect(html).toContain(`<details class='card item' id="cand-1" data-fold="cand-1" open><summary><h3>候補1：候補の題</h3>`);
+    expect(html).toContain(`data-fold="points-1" open><summary class='muted small'>出来事 1 件</summary>`);
+    expect(html).toContain('data-fold-all=items');
+  });
   it('読めなかったファイルはエラーを出す', () => {
     expect(videoBody({ ...data, candidates: null, candidates_error: 'ValueError: x' })).toContain('candidates.yaml を読めません：ValueError: x');
   });

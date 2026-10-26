@@ -2,6 +2,7 @@
 import './style.css';
 import { FirebaseError } from 'firebase/app';
 import { connect, firebaseOptions } from './firebase';
+import { FoldState, reveal } from './fold';
 import { esc } from './format';
 import { indexBody, videoBody, videoUrl } from './render';
 import { parseSources, sourcesBody } from './sources';
@@ -14,7 +15,8 @@ const crumb = document.querySelector<HTMLElement>('header .crumb')!;
 const nav = document.querySelector<HTMLElement>('#nav')!;
 const userBox = document.querySelector<HTMLElement>('#user')!;
 
-function show(body: string, crumbs: [string, string | null][] = [], tabs: [string, string][] = [], scroll = true) {
+/** prepare は描いた直後・# の位置へ移動する前に呼ぶ（たたんだ所の開け閉めを戻す） */
+function show(body: string, crumbs: [string, string | null][] = [], tabs: [string, string][] = [], scroll = true, prepare?: () => void) {
   crumb.innerHTML = [['出力一覧', BASE] as [string, string | null], ...crumbs]
     .map(([t, u]) => (u ? `<a href="${esc(u)}">${esc(t)}</a>` : esc(t)))
     .join(' / ');
@@ -22,9 +24,16 @@ function show(body: string, crumbs: [string, string | null][] = [], tabs: [strin
     ? '<nav class=tabs>' + tabs.map(([t, a]) => `<a href="#${esc(a)}">${esc(t)}</a>`).join('') + '</nav>'
     : '';
   app.innerHTML = body;
-  // 描画が読み込みの後なので、URL の #（候補・ショートへのリンク）の位置へ自分で移動する
-  if (scroll && location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+  prepare?.();
+  // 描画が読み込みの後なので、URL の #（候補・ショートへのリンク）の位置へ自分で移動する（たたんでいれば開く）
+  if (scroll && location.hash) reveal(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
 }
+
+// ページ内のリンク（上のタブ・候補やカットへのチップ）の行き先がたたんであれば、移動の前に開く
+document.addEventListener('click', (ev) => {
+  const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
+  if (a) reveal(decodeURIComponent(a.hash.slice(1)));
+});
 
 /** ログインの失敗の理由 */
 function signInError(e: unknown): string {
@@ -52,6 +61,7 @@ function watchVideo(fb: Fb, name: string): () => void {
   let requests: RequestDoc[] | undefined;
   let first = true;
   const checked = new Set<number>();
+  const folds = new FoldState(name); // 開け閉め（描き直しても・開き直しても保つ）
   let data: VideoData | null = null;
   let ctx: StageCtx | null = null;
   const draw = () => {
@@ -75,7 +85,7 @@ function watchVideo(fb: Fb, name: string): () => void {
       ['カット', 'cuts'],
       ['候補', 'candidates'],
       ['ショート', 'shorts'],
-    ], first);
+    ], first, () => folds.apply(app));
     first = false;
   };
   const fail = (e: Error) => show(`<p class=err>${esc(errorMessage(e))}</p>`);
@@ -100,6 +110,11 @@ function watchVideo(fb: Fb, name: string): () => void {
     draw();
   };
   const onClick = (ev: Event) => {
+    const all = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-fold-all]');
+    if (all) {
+      folds.setAll(app, all.dataset.foldAll!);
+      return;
+    }
     const button = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-stage]');
     if (!button || !data) return;
     const cuts = topicCuts(data);
@@ -118,6 +133,7 @@ function watchVideo(fb: Fb, name: string): () => void {
   };
   app.addEventListener('change', onChange);
   app.addEventListener('click', onClick);
+  const stopFolds = folds.track(app);
   const stops = [
     fb.onVideo(name, (d) => ((doc = d), draw()), fail),
     fb.onSources((d) => ((src = d), draw()), fail),
@@ -125,6 +141,7 @@ function watchVideo(fb: Fb, name: string): () => void {
   ];
   return () => {
     stops.forEach((stop) => stop());
+    stopFolds();
     app.removeEventListener('change', onChange);
     app.removeEventListener('click', onClick);
   };
