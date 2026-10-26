@@ -43,6 +43,32 @@ export interface TopicCut {
   adjusted: string | null; // 人が微調整して書き出した XML のファイル名
   adjusted_mtime: string | null;
   memo: Memo | null; // ショートの memo.json（まだなら null）
+  learn?: LearnBrief | null; // 微調整した XML とカットの違い（learn.json の要約。まだなら null）
+}
+
+/** 文ごとの違い（movie-editer の shorts/learn.py）。change：外した・一部を外した・戻した・一部を戻した */
+export interface LearnChange {
+  start: string;
+  end: string;
+  text: string;
+  change: string;
+  words?: string; // 一部を外した・戻した語
+  why?: string; // 戻した文がカットでなぜ外れていたか
+}
+
+/** topic_XX/learn.json の要約（movie-editer の shorts/topiccut.py の topic_summary） */
+export interface LearnBrief {
+  adjusted_xml: string;
+  adjusted_mtime: string;
+  cut: { start: string; end: string; duration: number; count: number };
+  adjusted: { start: string; end: string; duration: number; count: number };
+  head: number; // +：人が頭を遅らせた
+  tail: number; // -：人が終わりを早めた
+  removed_sec: number;
+  added_sec: number;
+  counts: Record<string, number>;
+  changes: LearnChange[];
+  made: string;
 }
 
 /** topic_XX/cut.json（movie-editer の shorts/topiccut.py の make_cut） */
@@ -161,10 +187,12 @@ export interface SourceItem {
   shorts: number;
   cuts?: number; // 段階式のカットの数（topic_XX/）
   topic_shorts?: number; // 段階式のショートの数
+  learned?: number; // 微調整を学習したトピックの数
 }
 
-/** topics：トピックだけ／cut：選んだトピックのカット／short：微調整した XML からショート／candidates：トピックと候補（前のやり方） */
-export type RequestAction = 'topics' | 'cut' | 'short' | 'candidates' | 'scan';
+/** topics：トピックだけ／cut：選んだトピックのカット／learn：微調整した XML とカットの違いを学ぶ／
+ * short：微調整した XML からショート（いまはボタンを出していない）／candidates：トピックと候補（前のやり方） */
+export type RequestAction = 'topics' | 'cut' | 'learn' | 'short' | 'candidates' | 'scan';
 export type RequestStatus = 'queued' | 'running' | 'done' | 'error';
 
 /** Firestore の requests/{id}。ビューアが queued で書き、watch が状態を書き戻す */
@@ -172,7 +200,7 @@ export interface RequestDoc {
   id: string;
   action: RequestAction;
   video: string; // SourceItem.rel（scan は空）
-  topics?: number[]; // cut・short のトピック ID
+  topics?: number[]; // cut・learn・short のトピック ID
   status: RequestStatus;
   created: Date | null;
   by: string;

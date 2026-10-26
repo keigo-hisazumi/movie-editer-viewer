@@ -28,8 +28,8 @@ service cloud.firestore {
       allow read: if isOwner();
       allow create: if isOwner()
         && request.resource.data.keys().hasOnly(['action', 'video', 'topics', 'status', 'created', 'by'])
-        && request.resource.data.action in ['topics', 'cut', 'short', 'candidates', 'scan']
-        && (request.resource.data.action in ['cut', 'short']) == ('topics' in request.resource.data)
+        && request.resource.data.action in ['topics', 'cut', 'learn', 'short', 'candidates', 'scan']
+        && (request.resource.data.action in ['cut', 'learn', 'short']) == ('topics' in request.resource.data)
         && (!('topics' in request.resource.data)
             || (request.resource.data.topics is list
                 && request.resource.data.topics.size() >= 1

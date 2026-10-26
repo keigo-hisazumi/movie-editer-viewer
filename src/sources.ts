@@ -27,6 +27,8 @@ export function requestLabel(r: RequestDoc): string {
       return `トピック：${r.video}`;
     case 'cut':
       return `カット${topics}：${r.video}`;
+    case 'learn':
+      return `学習${topics}：${r.video}`;
     case 'short':
       return `ショート${topics}：${r.video}`;
     default:
@@ -65,6 +67,7 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
       countChip('トピック', s.topics),
       countChip('候補', s.candidates),
       s.cuts ? countChip('カット', s.cuts) : '',
+      s.learned ? countChip('学習', s.learned, 'ok') : '',
       s.shorts + (s.topic_shorts ?? 0) ? countChip('ショート', s.shorts + (s.topic_shorts ?? 0), 'ok') : '',
     ].join('') || '<span class=muted>未処理</span>';
   const done = (s.topics ?? 0) > 0;
