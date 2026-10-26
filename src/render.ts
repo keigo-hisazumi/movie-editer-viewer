@@ -1,4 +1,5 @@
 // 一覧・動画ごとのページの HTML（movie-editer の shorts/viewer.py の serve と同じ内容・見た目）
+import { foldBar, foldCard, foldSection } from './fold';
 import { dur, esc, g, hms, localTime, shortTime, signed } from './format';
 import { activeByTopic, checkCell, cutsSection, requestsSection, stageBar, stageCell, topicCuts, type StageCtx } from './stages';
 import type { Candidate, Memo, Short, VideoData, VideoDoc } from './types';
@@ -42,13 +43,13 @@ function headingHtml(s: string): string {
 function topicsSection(v: VideoData, ctx: StageCtx | null): [string, Map<number, string>] {
   const names = new Map<number, string>();
   if (v.topics_error) {
-    return [`<h2 id=topics>トピック</h2><p class=err>topics.yaml を読めません：${esc(v.topics_error)}</p>`, names];
+    return [foldSection('topics', 'トピック', `<p class=err>topics.yaml を読めません：${esc(v.topics_error)}</p>`), names];
   }
   if (!v.topics) {
     const msg = v.legacy_topics
       ? '前の形式の topics.md です（python -m shorts migrate で変換する）。'
       : 'topics.yaml はまだありません。';
-    return [`<h2 id=topics>トピック</h2><p class=muted>${msg}</p>`, names];
+    return [foldSection('topics', 'トピック', `<p class=muted>${msg}</p>`), names];
   }
   const topics = v.topics;
   const cuts = topicCuts(v);
@@ -57,8 +58,10 @@ function topicsSection(v: VideoData, ctx: StageCtx | null): [string, Map<number,
     names.set(t.id, t.title);
     const end = i + 1 < topics.length ? topics[i + 1].start : v.stream_length;
     const length = end !== null ? `${((end - t.start) / 60).toFixed(1)}分` : '';
+    // 出来事はトピックごとにたためる（たたんでも件数は見える）
     const points = t.points.length
-      ? '<ul class=small>' + t.points.map((x) => `<li>${esc(x)}</li>`).join('') + '</ul>'
+      ? `<details class='points item' data-fold="points-${t.id}" open><summary class='muted small'>出来事 ${t.points.length} 件</summary>` +
+        '<ul class=small>' + t.points.map((x) => `<li>${esc(x)}</li>`).join('') + '</ul></details>'
       : '';
     return (
       `<tr id=topic-${t.id}>${checkCell(t.id, ctx, active)}<td class=t>${t.id}</td><td class=t>${shortTime(t.start)}</td>` +
@@ -67,13 +70,16 @@ function topicsSection(v: VideoData, ctx: StageCtx | null): [string, Map<number,
     );
   });
   const chapters = topics.map((t) => `${shortTime(t.start)} ${t.title}`).join('\n');
-  const html =
-    `<h2 id=topics>トピック（${topics.length} 件）</h2>${stageBar(v, ctx)}<div class=scroll><table class=topics>` +
-    '<thead><tr><th>選択</th><th>#</th><th>開始</th><th>長さ</th><th>タイトル・内容</th><th>カット・ショート</th></tr></thead><tbody>' +
-    rows.join('') +
-    '</tbody></table></div>' +
-    '<details><summary class=small>チャプター（YouTube の概要欄にそのまま貼れる形）</summary>' +
-    `<pre>${esc(chapters)}</pre></details>`;
+  const html = foldSection(
+    'topics',
+    `トピック（${topics.length} 件）`,
+    `${stageBar(v, ctx)}<div class=scroll><table class=topics>` +
+      '<thead><tr><th>選択</th><th>#</th><th>開始</th><th>長さ</th><th>タイトル・内容</th><th>カット・ショート</th></tr></thead><tbody>' +
+      rows.join('') +
+      '</tbody></table></div>' +
+      '<details data-fold=chapters><summary class=small>チャプター（YouTube の概要欄にそのまま貼れる形）</summary>' +
+      `<pre>${esc(chapters)}</pre></details>`,
+  );
   return [html, names];
 }
 
@@ -117,10 +123,7 @@ function candidateCard(c: Candidate, topicNames: Map<number, string>, made: Map<
   if (c.ignored.length) {
     items.push(['注意', `<span class=err>${esc(c.ignored.join('・'))} は廃止した指定（使われない）</span>`]);
   }
-  return (
-    `<div class=card id=cand-${c.id}><h3>候補${c.id}：${esc(c.title)}</h3>` +
-    `<div>${chips.join('')}</div><dl>${dl(items)}</dl></div>`
-  );
+  return foldCard(`cand-${c.id}`, `<h3>候補${c.id}：${esc(c.title)}</h3><div>${chips.join('')}</div>`, `<dl>${dl(items)}</dl>`);
 }
 
 function lines(items: string[]): string {
@@ -133,7 +136,7 @@ function shortCard(s: Short, id: string = s.name): string {
   const head = `<div class='muted small'>${esc(s.name)}${files ? ' ・ ' + files : ''}</div>`;
   const memo: Memo | null = s.memo;
   if (!memo) {
-    return `<div class=card id="${esc(id)}">${head}<p class=muted>memo.json がありません</p></div>`;
+    return foldCard(id, head, '<p class=muted>memo.json がありません</p>');
   }
   const c = memo.candidate ?? {};
   const removed =
@@ -197,10 +200,7 @@ function shortCard(s: Short, id: string = s.name): string {
     items.push(['削ったフィラー', memo.fillers.map((x) => `${esc(x.text)}（${esc(x.at)}）`).join('、')]);
   }
   for (const [k, v] of Object.entries(memo.extra ?? {})) items.push([k, lines(v.map(esc))]);
-  return (
-    `<div class=card id="${esc(id)}">${head}<h3>${esc(c.title || s.name)}</h3>` +
-    `<div>${chips.join('')}</div><dl>${dl(items)}</dl></div>`
-  );
+  return foldCard(id, `${head}<h3>${esc(c.title || s.name)}</h3><div>${chips.join('')}</div>`, `<dl>${dl(items)}</dl>`);
 }
 
 /** 動画ページ。ctx は段階式の依頼に要るもの（null なら依頼のボタンは出さない・使えない） */
@@ -214,16 +214,18 @@ export function videoBody(v: VideoData, ctx: StageCtx | null = null, base = '/')
   }
   let candsHtml: string;
   if (v.candidates_error) {
-    candsHtml = `<h2 id=candidates>候補</h2><p class=err>candidates.yaml を読めません：${esc(v.candidates_error)}</p>`;
+    candsHtml = foldSection('candidates', '候補', `<p class=err>candidates.yaml を読めません：${esc(v.candidates_error)}</p>`);
   } else if (!v.candidates) {
-    candsHtml = '<h2 id=candidates>候補</h2><p class=muted>candidates.yaml はまだありません。</p>';
+    candsHtml = foldSection('candidates', '候補', '<p class=muted>candidates.yaml はまだありません。</p>');
   } else {
-    candsHtml =
-      `<h2 id=candidates>候補（${v.candidates.length} 本）</h2>` +
-      v.candidates.map((c) => candidateCard(c, topicNames, made)).join('');
+    candsHtml = foldSection(
+      'candidates',
+      `候補（${v.candidates.length} 本）`,
+      v.candidates.map((c) => candidateCard(c, topicNames, made)).join(''),
+    );
   }
   const shortsHtml = v.shorts.length
-    ? `<h2 id=shorts>ショート（${v.shorts.length} 本）</h2>` + v.shorts.map((s) => shortCard(s)).join('')
-    : '<h2 id=shorts>ショート</h2><p class=muted>まだ作っていません。</p>';
-  return `<h1>${esc(v.name)}</h1>${topicsHtml}${cutsHtml}${requestsSection(ctx, base)}${candsHtml}${shortsHtml}`;
+    ? foldSection('shorts', `ショート（${v.shorts.length} 本）`, v.shorts.map((s) => shortCard(s)).join(''))
+    : foldSection('shorts', 'ショート', '<p class=muted>まだ作っていません。</p>');
+  return `<h1>${esc(v.name)}</h1>${foldBar()}${topicsHtml}${cutsHtml}${requestsSection(ctx, base)}${candsHtml}${shortsHtml}`;
 }
