@@ -9,18 +9,16 @@ const item = (rel: string, over: Partial<SourceItem> = {}): SourceItem => ({
   mtime: '',
   transcript: false,
   topics: null,
-  candidates: null,
-  shorts: 0,
   ...over,
 });
 const src = (items: SourceItem[]): SourcesDoc => ({ updated: '2026-10-24T00:00:00+00:00', count: items.length, data: JSON.stringify(items) });
 const req = (over: Partial<RequestDoc>): RequestDoc => ({
-  id: 'x', action: 'candidates', video: '', status: 'queued', created: null, by: '', ...over,
+  id: 'x', action: 'topics', video: '', status: 'queued', created: null, by: '', ...over,
 });
 
 describe('sourcesBody', () => {
   it('未処理の動画には「トピックを作る」、作成済みには「トピックを選ぶ」と「トピックを作り直す」を出す', () => {
-    const html = sourcesBody(src([item('202610/20261017.mp4'), item('20261001.mp4', { transcript: true, topics: 5, cuts: 2, shorts: 1, topic_shorts: 1 })]), [], '/', new Set(['20261001']));
+    const html = sourcesBody(src([item('202610/20261017.mp4'), item('20261001.mp4', { transcript: true, topics: 5, cuts: 2, topic_shorts: 2 })]), [], '/', new Set(['20261001']));
     expect(html).toContain('data-request=topics data-video="202610/20261017.mp4" data-redo="">トピックを作る');
     expect(html).toContain('href="/?v=20261001#topics">トピックを選ぶ');
     expect(html).toContain('data-video="20261001.mp4" data-redo=1>トピックを作り直す');
@@ -60,7 +58,7 @@ describe('activeRequests', () => {
 });
 
 describe('フォルダごとの折りたたみ', () => {
-  const items = [item('202609/a.mp4'), item('b.mp4'), item('202610/c.mp4'), item('202610/d.mp4', { topics: 1, candidates: 1 })];
+  const items = [item('202609/a.mp4'), item('b.mp4'), item('202610/c.mp4'), item('202610/d.mp4', { topics: 1 })];
   it('新しいフォルダから並べ、直下は最後', () => {
     expect(groupByFolder(items).map(([f, l]) => [f, l.length])).toEqual([['202610', 2], ['202609', 1], ['', 1]]);
   });

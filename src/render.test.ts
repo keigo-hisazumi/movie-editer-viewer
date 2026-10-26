@@ -18,7 +18,7 @@ describe('format', () => {
 });
 
 const data: VideoData = {
-  schema: 1,
+  schema: 2,
   name: '20261017',
   updated: '2026-10-17T12:00:00+00:00',
   stream_length: 600,
@@ -28,14 +28,18 @@ const data: VideoData = {
   ],
   topics_error: '',
   legacy_topics: false,
-  candidates: [
+  cuts: [],
+  cuts_error: '',
+  topic_cuts: [
     {
-      id: 1, start: 60, end: 120, title: '候補の題', titles: ['案1'], heading: '[強調]の見出し', summary: '', reason: '',
-      topic: 1, drop: [[70, 80]], bgm: null, bgm_offset: 0, se: [{ at: 90, file: 'ドン.mp3', db: null }], images: [], ignored: [],
+      name: 'topic_01', topic: 1, files: ['a.xml'], adjusted: null, adjusted_mtime: null, learn: null,
+      cut: {
+        topic: 1, title: 'カットの題', titles: ['案1'], heading: '[強調]の見出し', summary: '', reason: '', start: '00:01:00.000',
+        end: '00:02:00.000', duration: 50, removed: {}, cuts: [], drop: [], files: [], made: '',
+      },
+      memo: { topic: 1, spec: { id: 1, title: 'ショートの題' }, duration: 40, cuts: [['00:01:00.000', '00:01:10.000']] },
     },
   ],
-  candidates_error: '',
-  shorts: [{ name: 'short_01', files: ['a.xml'], memo: { candidate: { id: 1, title: 'ショートの題' }, duration: 40, cuts: [['00:01:00.000', '00:01:10.000']] } }],
 };
 
 describe('videoBody', () => {
@@ -49,24 +53,27 @@ describe('videoBody', () => {
   it('見出しの [ ] を強調にする', () => {
     expect(html).toContain('<em>強調</em>の見出し');
   });
-  it('候補から作ったショートへのリンクを付ける', () => {
-    expect(html).toContain('href="#short_01">short_01 作成済み');
+  it('トピックのカードに、作ったショートへのリンクと記録を出す', () => {
+    expect(html).toContain('href="#topic_01-short"');
     expect(html).toContain('ショートの題');
+  });
+  it('候補は出さない（廃止した）', () => {
+    expect(html).not.toContain('候補');
   });
   it('セクション・カード・トピックの出来事はたためる（既定は開いている）', () => {
     expect(html).toContain('<details class=sec data-fold="sec-topics" open><summary><h2 id="topics">トピック（2 件）</h2></summary>');
-    expect(html).toContain(`<details class='card item' id="cand-1" data-fold="cand-1" open><summary><h3>候補1：候補の題</h3>`);
+    expect(html).toContain(`<details class='card item' id="topic_01" data-fold="topic_01" open>`);
     expect(html).toContain(`data-fold="points-1" open><summary class='muted small'>出来事 1 件</summary>`);
     expect(html).toContain('data-fold-all=items');
   });
   it('読めなかったファイルはエラーを出す', () => {
-    expect(videoBody({ ...data, candidates: null, candidates_error: 'ValueError: x' })).toContain('candidates.yaml を読めません：ValueError: x');
+    expect(videoBody({ ...data, topics: null, topics_error: 'ValueError: x' })).toContain('topics.yaml を読めません：ValueError: x');
   });
 });
 
 describe('indexBody', () => {
   it('新しい順に並べ、動画ページへリンクする', () => {
-    const doc = (name: string) => ({ schema: 1, name, updated: '', published: '', topics_count: 1, candidates_count: 0, shorts_count: 2, data: '' });
+    const doc = (name: string) => ({ schema: 2, name, updated: '', published: '', topics_count: 1, shorts_count: 2, data: '' });
     const html = indexBody([doc('20261001'), doc('20261017')], '/movie-editer-viewer/');
     expect(html.indexOf('20261017')).toBeLessThan(html.indexOf('20261001'));
     expect(html).toContain('href="/movie-editer-viewer/?v=20261017"');

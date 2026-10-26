@@ -1,8 +1,8 @@
 // 一覧・動画ごとのページの HTML（movie-editer の shorts/viewer.py の serve と同じ内容・見た目）
 import { foldBar, foldCard, foldSection } from './fold';
-import { dur, esc, g, hms, localTime, shortTime, signed } from './format';
+import { esc, g, localTime, shortTime, signed } from './format';
 import { activeByTopic, checkCell, cutsSection, requestsSection, stageBar, stageCell, topicCuts, type StageCtx } from './stages';
-import type { Candidate, Memo, Short, VideoData, VideoDoc } from './types';
+import type { Memo, Short, VideoData, VideoDoc } from './types';
 
 /** 動画ページの URL（?v=動画名。# はページ内の移動に使う） */
 export function videoUrl(base: string, name: string): string {
@@ -18,7 +18,6 @@ export function indexBody(docs: VideoDoc[], base: string): string {
     .map((d) => {
       const chips: string[] = [];
       if (d.topics_count) chips.push(`<span class=chip>トピック ${d.topics_count}</span>`);
-      if (d.candidates_count) chips.push(`<span class=chip>候補 ${d.candidates_count}</span>`);
       if (d.cuts_count) chips.push(`<span class=chip>カット ${d.cuts_count}</span>`);
       if (d.shorts_count) chips.push(`<span class='chip ok'>ショート ${d.shorts_count}</span>`);
       return (
@@ -33,11 +32,6 @@ export function indexBody(docs: VideoDoc[], base: string): string {
     rows.join('') +
     '</tbody></table></div>'
   );
-}
-
-/** 見出しの [ ] で囲んだ強調部分を色付きにする */
-function headingHtml(s: string): string {
-  return esc(s).replace(/\[(.+?)\]/g, '<em>$1</em>');
 }
 
 function topicsSection(v: VideoData, ctx: StageCtx | null): [string, Map<number, string>] {
@@ -87,50 +81,11 @@ function dl(items: [string, string][]): string {
   return items.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('');
 }
 
-function candidateCard(c: Candidate, topicNames: Map<number, string>, made: Map<number, string[]>): string {
-  const chips = [
-    `<span class=chip>${shortTime(c.start)}〜${shortTime(c.end)}</span>`,
-    `<span class=chip>${dur(c.end - c.start)}</span>`,
-  ];
-  for (const s of made.get(c.id) ?? []) {
-    chips.push(`<a class='chip ok' href="#${esc(s)}">${esc(s)} 作成済み</a>`);
-  }
-  const items: [string, string][] = [];
-  if (c.heading) items.push(['見出し', `<span class=heading>${headingHtml(c.heading)}</span>`]);
-  if (c.titles.length) items.push(['タイトル案', c.titles.map(esc).join('<br>')]);
-  if (c.topic !== null) {
-    const label = `${c.topic}. ${topicNames.get(c.topic) ?? '（topics.yaml に無い）'}`;
-    items.push(['トピック', `<a href="#topic-${c.topic}">${esc(label)}</a>`]);
-  }
-  if (c.summary) items.push(['内容', esc(c.summary)]);
-  if (c.reason) items.push(['理由', esc(c.reason)]);
-  if (c.drop.length) {
-    items.push(['外す範囲', c.drop.map(([a, b]) => `${hms(a)}〜${hms(b)}（${(b - a).toFixed(1)}秒）`).join('<br>')]);
-  }
-  if (c.bgm !== null) items.push(['BGM', esc(c.bgm) + (c.bgm_offset ? `（${g(c.bgm_offset)}秒から）` : '')]);
-  if (c.se.length) {
-    items.push([
-      '効果音',
-      c.se.map((s) => `${hms(s.at)} ${esc(s.file)}` + (s.db !== null ? `（${signed(s.db)}dB）` : '')).join('<br>'),
-    ]);
-  }
-  if (c.images.length) {
-    items.push([
-      '画像',
-      c.images.map((m) => hms(m.at) + (m.end !== null ? `〜${hms(m.end)}` : '') + ` ${esc(m.file)}`).join('<br>'),
-    ]);
-  }
-  if (c.ignored.length) {
-    items.push(['注意', `<span class=err>${esc(c.ignored.join('・'))} は廃止した指定（使われない）</span>`]);
-  }
-  return foldCard(`cand-${c.id}`, `<h3>候補${c.id}：${esc(c.title)}</h3><div>${chips.join('')}</div>`, `<dl>${dl(items)}</dl>`);
-}
-
 function lines(items: string[]): string {
   return items.length ? items.join('<br>') : '<span class=muted>なし</span>';
 }
 
-/** ショートのカード。id は要素の id（段階式のショートは topic_XX-short。無ければ s.name） */
+/** ショートのカード（topic_XX/memo.json）。id は要素の id（topic_XX-short） */
 function shortCard(s: Short, id: string = s.name): string {
   const files = s.files.map(esc).join(', ');
   const head = `<div class='muted small'>${esc(s.name)}${files ? ' ・ ' + files : ''}</div>`;
@@ -138,7 +93,7 @@ function shortCard(s: Short, id: string = s.name): string {
   if (!memo) {
     return foldCard(id, head, '<p class=muted>memo.json がありません</p>');
   }
-  const c = memo.candidate ?? {};
+  const c = memo.spec ?? {};
   const removed =
     Object.entries(memo.removed ?? {})
       .map(([k, v]) => `${esc(k)} ${v}秒`)
@@ -149,10 +104,8 @@ function shortCard(s: Short, id: string = s.name): string {
   ];
   if (memo.topic !== undefined && memo.topic !== null) {
     chips.push(`<a class=chip href="#topic-${esc(memo.topic)}">トピック${esc(memo.topic)}</a>`);
-    if (memo.source_xml) chips.push(`<span class=chip>カット：${esc(memo.source_xml)}</span>`);
-  } else if (c.id !== undefined && c.id !== null) {
-    chips.push(`<a class=chip href="#cand-${esc(c.id)}">候補${esc(c.id)}</a>`);
   }
+  if (memo.source_xml) chips.push(`<span class=chip>カット：${esc(memo.source_xml)}</span>`);
   if (memo.note) chips.push(`<span class='chip warn'>${esc(memo.note)}</span>`);
   const sound: string[] = [];
   if (memo.bgm) {
@@ -171,7 +124,7 @@ function shortCard(s: Short, id: string = s.name): string {
     [
       '区間',
       `${esc(memo.start)}〜${esc(memo.end)}（削った分：${removed}）` +
-        `<div class='muted small'>候補 ${esc(c.start)}〜${esc(c.end)}、${esc(memo.snap)}</div>`,
+        `<div class='muted small'>${esc(memo.snap)}</div>`,
     ],
     [
       '画面の文字',
@@ -187,7 +140,6 @@ function shortCard(s: Short, id: string = s.name): string {
     ['画像', lines(images)],
     ['タイトル案', lines((c.titles ?? []).map(esc))],
     ['内容', esc(c.summary || '（未記入）')],
-    ['選んだ理由', esc(c.reason || '（未記入）')],
     [
       'ファイル',
       lines((memo.files ?? []).map((f) => `<code>${esc(f.name)}</code>：${esc(f.desc)}`)) +
@@ -199,7 +151,6 @@ function shortCard(s: Short, id: string = s.name): string {
   if (memo.fillers?.length) {
     items.push(['削ったフィラー', memo.fillers.map((x) => `${esc(x.text)}（${esc(x.at)}）`).join('、')]);
   }
-  for (const [k, v] of Object.entries(memo.extra ?? {})) items.push([k, lines(v.map(esc))]);
   return foldCard(id, `${head}<h3>${esc(c.title || s.name)}</h3><div>${chips.join('')}</div>`, `<dl>${dl(items)}</dl>`);
 }
 
@@ -207,25 +158,5 @@ function shortCard(s: Short, id: string = s.name): string {
 export function videoBody(v: VideoData, ctx: StageCtx | null = null, base = '/'): string {
   const [topicsHtml, topicNames] = topicsSection(v, ctx);
   const cutsHtml = cutsSection(v, topicNames, (id, tc) => shortCard({ name: tc.name, files: tc.files, memo: tc.memo }, id));
-  const made = new Map<number, string[]>();
-  for (const s of v.shorts) {
-    const cid = s.memo?.candidate?.id;
-    if (cid !== undefined && cid !== null) made.set(Number(cid), [...(made.get(Number(cid)) ?? []), s.name]);
-  }
-  let candsHtml: string;
-  if (v.candidates_error) {
-    candsHtml = foldSection('candidates', '候補', `<p class=err>candidates.yaml を読めません：${esc(v.candidates_error)}</p>`);
-  } else if (!v.candidates) {
-    candsHtml = foldSection('candidates', '候補', '<p class=muted>candidates.yaml はまだありません。</p>');
-  } else {
-    candsHtml = foldSection(
-      'candidates',
-      `候補（${v.candidates.length} 本）`,
-      v.candidates.map((c) => candidateCard(c, topicNames, made)).join(''),
-    );
-  }
-  const shortsHtml = v.shorts.length
-    ? foldSection('shorts', `ショート（${v.shorts.length} 本）`, v.shorts.map((s) => shortCard(s)).join(''))
-    : foldSection('shorts', 'ショート', '<p class=muted>まだ作っていません。</p>');
-  return `<h1>${esc(v.name)}</h1>${foldBar()}${topicsHtml}${cutsHtml}${requestsSection(ctx, base)}${candsHtml}${shortsHtml}`;
+  return `<h1>${esc(v.name)}</h1>${foldBar()}${topicsHtml}${cutsHtml}${requestsSection(ctx, base)}`;
 }

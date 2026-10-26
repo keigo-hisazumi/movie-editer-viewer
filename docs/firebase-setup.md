@@ -1,6 +1,6 @@
 # Firebase と GitHub Pages の準備
 
-movie-editer の出力（トピック・候補・ショートの記録）を Firestore に送り、このビューアで見られるようにするための初回だけの設定です。Firebase は無料の Spark プランのまま使います（Cloud Storage は使いません）。
+movie-editer の出力（トピック・カット・ショートの記録）を Firestore に送り、このビューアで見られるようにするための初回だけの設定です。Firebase は無料の Spark プランのまま使います（Cloud Storage は使いません）。
 
 ## 1. Firebase プロジェクトを作る
 
@@ -73,7 +73,7 @@ movie-editer の出力（トピック・候補・ショートの記録）を Fir
 
 この鍵は Firestore に何でも書ける鍵です。git に入れたり人に渡したりしないでください。漏れたときは同じ画面で鍵を削除し、作り直します。
 
-以後は `prepare`・`transcribe`・`topics`・`candidates`・`make` の後に、その動画が自動で送られます。
+以後は `prepare`・`transcribe`・`topics`・`cut`・`learn`・`short` の後に、その動画が自動で送られます。
 
 ブラウザからトピック・カット・ショート作りを頼むときは、`config.local.yaml` に `video_dir`（元動画のフォルダ）も書き、Mac のターミナルで次を起動したままにしておきます（止めるときは Ctrl+C）。起動すると元動画の一覧が送られ、ビューアの「元動画」に出ます。
 
