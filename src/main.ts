@@ -113,9 +113,8 @@ function watchVideo(fb: Fb, name: string): () => void {
     }
     const t = Number(button.dataset.topic);
     const tc = cuts.get(t);
-    if (!tc?.adjusted && !confirm(`トピック ${t} の微調整した XML が topic_${String(t).padStart(2, '0')}/ にありません。カットの XML のままショートを作りますか？`)) return;
-    if (button.dataset.redo && tc?.adjusted && !confirm(`トピック ${t} のショートを ${tc.adjusted} から作り直します。よいですか？`)) return;
-    send('short', [t], button);
+    if (button.dataset.redo && !confirm(`トピック ${t} の ${tc?.adjusted} はもう学習済みです。もう一度学習させますか？`)) return;
+    send('learn', [t], button);
   };
   app.addEventListener('change', onChange);
   app.addEventListener('click', onClick);
