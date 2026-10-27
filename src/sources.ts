@@ -31,8 +31,8 @@ export function requestLabel(r: RequestDoc): string {
       return `学習${topics}：${r.video}`;
     case 'short':
       return `ショート${topics}：${r.video}`;
-    default:
-      return `トピックと候補：${r.video}`;
+    default: // 廃止した依頼（前の candidates など）
+      return `${r.action}：${r.video}`;
   }
 }
 
@@ -65,10 +65,9 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
     [
       s.transcript ? '<span class=chip>文字起こし済み</span>' : '',
       countChip('トピック', s.topics),
-      countChip('候補', s.candidates),
       s.cuts ? countChip('カット', s.cuts) : '',
       s.learned ? countChip('学習', s.learned, 'ok') : '',
-      s.shorts + (s.topic_shorts ?? 0) ? countChip('ショート', s.shorts + (s.topic_shorts ?? 0), 'ok') : '',
+      s.topic_shorts ? countChip('ショート', s.topic_shorts, 'ok') : '',
     ].join('') || '<span class=muted>未処理</span>';
   const done = (s.topics ?? 0) > 0;
   // 段階式の1：トピックだけを作る。作った後は動画のページでトピックを選んでカットを頼む

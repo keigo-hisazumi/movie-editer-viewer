@@ -1,8 +1,8 @@
 // movie-editer の publish（shorts/publish.py）が Firestore に書く内容の型
-// 時刻は元動画の秒。memo は short_XX/memo.json そのまま（元動画の時刻は "HH:MM:SS.mmm"、ショートの中の時刻は秒）
+// 時刻は元動画の秒。memo は topic_XX/memo.json そのまま（元動画の時刻は "HH:MM:SS.mmm"、ショートの中の時刻は秒）
 
 /** data の形式の版。movie-editer の publish.py の SCHEMA と合わせる */
-export const SCHEMA = 1;
+export const SCHEMA = 2;
 
 /** Firestore の videos/{動画名} のドキュメント */
 export interface VideoDoc {
@@ -11,7 +11,6 @@ export interface VideoDoc {
   updated: string; // 出力フォルダのファイルの最終更新（ISO 8601）
   published: string; // 送った日時（ISO 8601）
   topics_count: number;
-  candidates_count: number;
   shorts_count: number;
   cuts_count?: number; // 段階式のカットの数（topic_XX/。前の版の publish には無い）
   data: string; // VideoData の JSON
@@ -25,11 +24,8 @@ export interface VideoData {
   topics: Topic[] | null;
   topics_error: string;
   legacy_topics: boolean;
-  candidates: Candidate[] | null;
-  candidates_error: string;
-  shorts: Short[];
-  // 段階式（トピック → カット → ショート）。前の版の publish には無い
-  cuts?: Candidate[] | null; // cuts.yaml（id はトピックの ID）
+  // 段階式（トピック → カット → 学習）
+  cuts?: CutSpec[] | null; // cuts.yaml（id はトピックの ID）
   cuts_error?: string;
   topic_cuts?: TopicCut[];
 }
@@ -109,8 +105,9 @@ export interface ImageCue {
   end: number | null;
 }
 
-export interface Candidate {
-  id: number;
+/** cuts.yaml の1項目（movie-editer の shorts/cutspec.py） */
+export interface CutSpec {
+  id: number; // トピックの ID
   start: number;
   end: number;
   title: string;
@@ -118,15 +115,14 @@ export interface Candidate {
   heading: string;
   summary: string;
   reason: string;
-  topic: number | null;
   drop: [number, number][];
   bgm: string | null;
   bgm_offset: number;
   se: SoundCue[];
   images: ImageCue[];
-  ignored: string[];
 }
 
+/** ショートのカードに出すもの（topic_XX/ の名前・ファイルと memo.json） */
 export interface Short {
   name: string;
   files: string[];
@@ -134,7 +130,7 @@ export interface Short {
 }
 
 export interface Memo {
-  candidate?: {
+  spec?: {
     id?: number;
     title?: string;
     titles?: string[];
@@ -160,8 +156,7 @@ export interface Memo {
   images?: { name: string; start: number; end: number }[];
   image_notes?: string[];
   files?: { name: string; desc: string }[];
-  extra?: Record<string, string[]>;
-  topic?: number; // 段階式のショート（topic_XX/）
+  topic?: number;
   source_xml?: string; // 読み込んだ微調整の XML
   source_notes?: string[];
 }
@@ -183,16 +178,14 @@ export interface SourceItem {
   mtime: string;
   transcript: boolean;
   topics: number | null; // topics.yaml の件数（無ければ null、読めなければ -1）
-  candidates: number | null;
-  shorts: number;
-  cuts?: number; // 段階式のカットの数（topic_XX/）
-  topic_shorts?: number; // 段階式のショートの数
+  cuts?: number; // カットの数（topic_XX/）
+  topic_shorts?: number; // ショートの数（topic_XX/）
   learned?: number; // 微調整を学習したトピックの数
 }
 
 /** topics：トピックだけ／cut：選んだトピックのカット／learn：微調整した XML とカットの違いを学ぶ／
- * short：微調整した XML からショート（いまはボタンを出していない）／candidates：トピックと候補（前のやり方） */
-export type RequestAction = 'topics' | 'cut' | 'learn' | 'short' | 'candidates' | 'scan';
+ * short：微調整した XML からショート（いまはボタンを出していない） */
+export type RequestAction = 'topics' | 'cut' | 'learn' | 'short' | 'scan';
 export type RequestStatus = 'queued' | 'running' | 'done' | 'error';
 
 /** Firestore の requests/{id}。ビューアが queued で書き、watch が状態を書き戻す */

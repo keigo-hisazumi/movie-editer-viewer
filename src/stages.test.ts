@@ -8,7 +8,7 @@ const req = (over: Partial<RequestDoc>): RequestDoc => ({
 });
 
 const data: VideoData = {
-  schema: 1,
+  schema: 2,
   name: '20261017',
   updated: '',
   stream_length: 900,
@@ -19,9 +19,6 @@ const data: VideoData = {
   ],
   topics_error: '',
   legacy_topics: false,
-  candidates: null,
-  candidates_error: '',
-  shorts: [],
   cuts: [],
   cuts_error: '',
   topic_cuts: [
@@ -34,7 +31,7 @@ const data: VideoData = {
     },
     {
       name: 'topic_03', topic: 3, files: [], adjusted: null, adjusted_mtime: null, cut: null,
-      memo: { topic: 3, source_xml: '直し.xml', duration: 40, candidate: { id: 3, title: '歌のショート' } },
+      memo: { topic: 3, source_xml: '直し.xml', duration: 40, spec: { id: 3, title: '歌のショート' } },
     },
   ],
 };

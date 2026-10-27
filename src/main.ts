@@ -25,11 +25,11 @@ function show(body: string, crumbs: [string, string | null][] = [], tabs: [strin
     : '';
   app.innerHTML = body;
   prepare?.();
-  // 描画が読み込みの後なので、URL の #（候補・ショートへのリンク）の位置へ自分で移動する（たたんでいれば開く）
+  // 描画が読み込みの後なので、URL の #（トピック・カットへのリンク）の位置へ自分で移動する（たたんでいれば開く）
   if (scroll && location.hash) reveal(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
 }
 
-// ページ内のリンク（上のタブ・候補やカットへのチップ）の行き先がたたんであれば、移動の前に開く
+// ページ内のリンク（上のタブ・トピックやカットへのチップ）の行き先がたたんであれば、移動の前に開く
 document.addEventListener('click', (ev) => {
   const a = (ev.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
   if (a) reveal(decodeURIComponent(a.hash.slice(1)));
@@ -83,8 +83,6 @@ function watchVideo(fb: Fb, name: string): () => void {
     show(videoBody(data, ctx, BASE), [[name, null]], [
       ['トピック', 'topics'],
       ['カット', 'cuts'],
-      ['候補', 'candidates'],
-      ['ショート', 'shorts'],
     ], first, () => folds.apply(app));
     first = false;
   };
@@ -185,11 +183,10 @@ function watchSources(fb: Fb, outputs: Set<string>): () => void {
   box.addEventListener('click', (ev) => {
     const button = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-request]');
     if (!button) return;
-    const action: RequestAction = button.dataset.request === 'scan' ? 'scan' : button.dataset.request === 'candidates' ? 'candidates' : 'topics';
+    const action: RequestAction = button.dataset.request === 'scan' ? 'scan' : 'topics';
     const video = button.dataset.video ?? '';
-    const what = action === 'topics' ? 'トピック（topics.yaml）' : 'トピックと候補（topics.yaml・candidates.yaml）';
-    const warn = action === 'topics' ? 'トピックの番号が変わると、作ったカット（topic_XX/）と合わなくなります。' : '';
-    if (button.dataset.redo && !confirm(`${video} の${what}を作り直します（今のファイルは書き換わります）。${warn}よいですか？`)) return;
+    const warn = 'トピックの番号が変わると、作ったカット（topic_XX/）と合わなくなります。';
+    if (button.dataset.redo && !confirm(`${video} のトピック（topics.yaml）を作り直します（今のファイルは書き換わります）。${warn}よいですか？`)) return;
     button.disabled = true;
     fb.addRequest(action, video).catch((e: unknown) => {
       button.disabled = false;

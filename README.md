@@ -1,21 +1,21 @@
 # movie-editer-viewer
 
-[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・切り抜き候補・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、メール/パスワードでログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
+[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・カット・学習・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、メール/パスワードでログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
 
 ## 主な機能
 
 - 元動画（movie-editer の `video_dir` の録画）の一覧と、それぞれの処理の状態
 - ボタンで段階式の処理を頼む：トピックを作る → トピックを選んでカット（フィラー・無音・関係ない話を詰めた XML とタイトル案）を作る → Filmora で微調整した XML をカットと比べて学習させる（次からのカットに生かす。Mac の movie-editer が受け取って処理し、進み具合と結果が出る）
 - トピックごとのカット・微調整した XML・ショートの状態
-- 動画ごとの出力の一覧（トピック・候補・ショートの数、更新日時）
+- 動画ごとの出力の一覧（トピック・カット・ショートの数、更新日時）
 - トピックの一覧と、YouTube の概要欄に貼れるチャプター
-- 切り抜き候補（見出し・タイトル案・選んだ理由・外す範囲・BGM・効果音・画像）
+- カット（見出し・タイトル案・外した話）と、微調整との違い（学習）
 - 作ったショートの記録（長さ・カット・画面の文字・BGM と効果音・ファイル）
 - メール/パスワードのログインで本人だけが見られる
 
 ## 使い方
 
-1. movie-editer で `prepare`・`topics`・`candidates`・`make` などを実行すると、その動画の記録が Firestore に自動で送られる（まとめて送り直すときは `python -m shorts publish`）。
+1. movie-editer で `prepare`・`topics`・`cut`・`learn` などを実行すると、その動画の記録が Firestore に自動で送られる（まとめて送り直すときは `python -m shorts publish`）。
 2. 公開先を開き、メールアドレスとパスワードでログインする。
 3. 一覧から動画を選ぶ。
 

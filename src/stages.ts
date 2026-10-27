@@ -28,9 +28,9 @@ export function activeByTopic(requests: RequestDoc[]): Map<number, RequestDoc> {
   return m;
 }
 
-/** この動画で、トピック全体に関わる依頼（topics・candidates）が処理待ち・処理中か */
+/** この動画で、トピック全体に関わる依頼（topics）が処理待ち・処理中か */
 function busyAll(requests: RequestDoc[]): RequestDoc | undefined {
-  return requests.find((r) => isActive(r) && (r.action === 'topics' || r.action === 'candidates'));
+  return requests.find((r) => isActive(r) && r.action === 'topics');
 }
 
 export function topicCuts(v: VideoData): Map<number, TopicCut> {
