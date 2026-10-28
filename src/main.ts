@@ -15,6 +15,10 @@ const crumb = document.querySelector<HTMLElement>('header .crumb')!;
 const nav = document.querySelector<HTMLElement>('#nav')!;
 const userBox = document.querySelector<HTMLElement>('#user')!;
 
+// 上の帯（header）の高さを --head-h に入れる。スマホでは折り返して高くなるので、固定の値だとボタンの帯・# の移動先が隠れる
+const header = document.querySelector<HTMLElement>('header')!;
+new ResizeObserver(() => document.documentElement.style.setProperty('--head-h', `${header.offsetHeight}px`)).observe(header);
+
 /** prepare は描いた直後・# の位置へ移動する前に呼ぶ（たたんだ所の開け閉めを戻す） */
 function show(body: string, crumbs: [string, string | null][] = [], tabs: [string, string][] = [], scroll = true, prepare?: () => void) {
   crumb.innerHTML = [['出力一覧', BASE] as [string, string | null], ...crumbs]

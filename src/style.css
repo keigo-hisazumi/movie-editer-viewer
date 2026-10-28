@@ -2,7 +2,7 @@
 :root{--bg:#f7f7f5;--fg:#1f2328;--muted:#656d76;--card:#fff;--line:#d8dce0;--accent:#c2410c;--chip:#eef1f4;--ok:#15803d;--warn:#b91c1c;--code:#f1f3f5}
 @media (prefers-color-scheme:dark){:root{--bg:#16181b;--fg:#e6e8ea;--muted:#9aa3ad;--card:#1f2226;--line:#33383e;--accent:#fb923c;--chip:#2a2f35;--ok:#4ade80;--warn:#f87171;--code:#272b30}}
 *{box-sizing:border-box}
-[id]{scroll-margin-top:56px}
+[id]{scroll-margin-top:calc(var(--head-h,48px) + 8px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
@@ -23,13 +23,12 @@ td.t{font-variant-numeric:tabular-nums;white-space:nowrap}
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0 0 12px}
 .card h3{margin:0 0 4px;font-size:16px}
 .card dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:8px 0 0}
-.card dt{color:var(--muted);font-size:13px}.card dd{margin:0}
+.card dt{color:var(--muted);font-size:13px}.card dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .heading em{font-style:normal;color:var(--accent);font-weight:600}
 pre{background:var(--code);padding:10px;border-radius:6px;overflow:auto;font-size:13px}
-code{background:var(--code);padding:0 4px;border-radius:4px;font-size:13px}pre code{padding:0;background:none}
+code{background:var(--code);padding:0 4px;border-radius:4px;font-size:13px;overflow-wrap:anywhere}pre code{padding:0;background:none}
 .err{color:var(--warn);font-weight:600}
 .scroll{overflow-x:auto}
-@media (max-width:640px){main{padding:12px}.card dl{grid-template-columns:1fr}.card dt{margin-top:4px}}
 header .user{margin-left:auto;font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
 button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -46,7 +45,7 @@ details.folder>summary{cursor:pointer;padding:6px 10px;background:var(--card);bo
 details.folder[open]>summary{border-radius:8px 8px 0 0;border-bottom:none}
 details.folder table{border-radius:0 0 8px 8px}
 ol.steps{margin:0 0 8px;padding-left:20px}
-.stagebar{position:sticky;top:48px;z-index:4;background:var(--bg);padding:6px 0 8px}
+.stagebar{position:sticky;top:var(--head-h,48px);z-index:4;background:var(--bg);padding:6px 0 8px}
 td input[type=checkbox]{width:18px;height:18px}
 table.topics td:nth-child(5){min-width:10em}table.topics td:nth-child(6){min-width:9em}
 /* 動画ページの折りたたみ（セクション・カード・トピックの出来事） */
@@ -61,3 +60,24 @@ details.sec>summary::before{position:static}details.card>summary::before{top:4px
 details.sec>summary h2{margin:0;padding:0}
 details.card:not([open]){padding-bottom:10px}
 details.points{margin:2px 0 0}details.points ul{margin:2px 0 0}
+/* スマホ（幅 640px 以下）：横にスクロールしないよう、表は行ごとに折り返し、長いファイル名・パスは途中で折る */
+@media (max-width:640px){
+  main{padding:12px}
+  header{padding:8px 12px;gap:4px 12px}
+  header .crumb{overflow-wrap:anywhere}
+  header .user span{display:none}
+  .card{padding:10px 12px}
+  .card dl{grid-template-columns:1fr}.card dt{margin-top:4px}
+  .chip{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+  pre{white-space:pre-wrap;overflow-wrap:anywhere}
+  .scroll{overflow-x:visible}
+  table,tbody,tr,td{display:block}
+  thead{display:none}
+  tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  tr:last-child{border-bottom:none}
+  td{padding:0;border-bottom:none;min-width:0;overflow-wrap:anywhere}
+  td:empty{display:none}
+  td.wide{flex:1 1 100%}
+  table.topics td:nth-child(5),table.topics td:nth-child(6){min-width:0}
+  table.topics td.wide+td.wide{margin-top:4px}
+}
