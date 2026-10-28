@@ -70,7 +70,7 @@ export function stageCell(topic: number, tc: TopicCut | undefined, ctx: StageCtx
       fresh ? 'もう一度学習させる' : '学習させる'
     }</button>`;
   }
-  return `<td>${chips.join('')}${action ? `<div>${action}</div>` : ''}</td>`;
+  return `<td class=wide>${chips.join('')}${action ? `<div>${action}</div>` : ''}</td>`;
 }
 
 /** トピックの表の上：選んだトピックのカットを頼むボタンと説明 */

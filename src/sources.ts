@@ -79,7 +79,7 @@ function sourceRow(s: SourceItem, active: RequestDoc | undefined, base: string, 
       : `<button class='primary small' data-request=topics data-video="${esc(s.rel)}" data-redo="${done ? 1 : ''}">` +
         `${done ? 'トピックを作り直す' : 'トピックを作る'}</button>`;
   const name = hasOutput ? `<a href="${esc(videoUrl(base, s.name))}">${esc(s.name)}</a>` : esc(s.name);
-  return `<tr><td>${name}</td><td>${chips}</td><td>${action}</td></tr>`;
+  return `<tr><td class=wide>${name}</td><td>${chips}</td><td>${action}</td></tr>`;
 }
 
 /** 動画のあるフォルダ（video_dir からの相対パス。直下は ''） */
@@ -115,7 +115,7 @@ export function requestRow(r: RequestDoc, base: string): string {
     : r.log
       ? `<details><summary class=small>Claude Code の報告</summary><pre>${esc(r.log)}</pre></details>`
       : '';
-  return `<tr><td>${statusChip(r)}</td><td>${what}${link}${detail}</td><td class='t muted small'>${esc(when)}</td></tr>`;
+  return `<tr><td>${statusChip(r)}</td><td class=wide>${what}${link}${detail}</td><td class='t muted small'>${esc(when)}</td></tr>`;
 }
 
 /**

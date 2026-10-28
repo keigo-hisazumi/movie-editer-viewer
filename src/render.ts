@@ -21,7 +21,7 @@ export function indexBody(docs: VideoDoc[], base: string): string {
       if (d.cuts_count) chips.push(`<span class=chip>カット ${d.cuts_count}</span>`);
       if (d.shorts_count) chips.push(`<span class='chip ok'>ショート ${d.shorts_count}</span>`);
       return (
-        `<tr><td><a href="${esc(videoUrl(base, d.name))}">${esc(d.name)}</a></td>` +
+        `<tr><td class=wide><a href="${esc(videoUrl(base, d.name))}">${esc(d.name)}</a></td>` +
         `<td>${chips.join('') || '<span class=muted>文字起こしのみ</span>'}</td>` +
         `<td class='t muted small'>${esc(localTime(d.updated))}</td></tr>`
       );
@@ -59,7 +59,7 @@ function topicsSection(v: VideoData, ctx: StageCtx | null): [string, Map<number,
       : '';
     return (
       `<tr id=topic-${t.id}>${checkCell(t.id, ctx, active)}<td class=t>${t.id}</td><td class=t>${shortTime(t.start)}</td>` +
-      `<td class=t>${esc(length)}</td><td><strong>${esc(t.title)}</strong>` +
+      `<td class=t>${esc(length)}</td><td class=wide><strong>${esc(t.title)}</strong>` +
       `<div class='muted small'>${esc(t.summary)}</div>${points}</td>${stageCell(t.id, cuts.get(t.id), ctx, active)}</tr>`
     );
   });
