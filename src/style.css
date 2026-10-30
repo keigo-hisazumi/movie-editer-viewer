@@ -61,6 +61,11 @@ details.sec>summary h2{margin:0;padding:0}
 details.card:not([open]){padding-bottom:10px}
 details.points{margin:2px 0 0}details.points ul{margin:2px 0 0}
 /* スマホ（幅 640px 以下）：横にスクロールしないよう、表は行ごとに折り返し、長いファイル名・パスは途中で折る */
+/* 学習の「学んだこと（全体）」（cut_learning.md・short_learning.md の Markdown） */
+.md h3,.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
+.md p,.md ol,.md ul{margin:4px 0}
+.md li{margin:2px 0}
+
 @media (max-width:640px){
   main{padding:12px}
   header{padding:8px 12px;gap:4px 12px}

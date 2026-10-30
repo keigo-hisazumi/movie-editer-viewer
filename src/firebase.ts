@@ -15,7 +15,7 @@ import {
   serverTimestamp,
   type Timestamp,
 } from 'firebase/firestore';
-import type { RequestAction, RequestDoc, SourcesDoc, VideoDoc } from './types';
+import type { LearningDoc, RequestAction, RequestDoc, SourcesDoc, VideoDoc } from './types';
 
 /** movie-editer の config.yaml の firebase.collection と合わせる */
 const COLLECTION = 'videos';
@@ -64,6 +64,10 @@ export function connect(options: FirebaseOptions) {
     /** 元動画の一覧を見張る（変わるたびに cb）。戻り値で見張りをやめる */
     onSources(cb: (d: SourcesDoc | null) => void, onError: (e: Error) => void) {
       return onSnapshot(doc(db, SOURCES, 'all'), (s) => cb(s.exists() ? (s.data() as SourcesDoc) : null), onError);
+    },
+    /** 出力フォルダ直下の学び（cut_learning.md・short_learning.md。watch・publish が learning に送る）を見張る */
+    onLearning(cb: (d: LearningDoc | null) => void, onError: (e: Error) => void) {
+      return onSnapshot(doc(db, SOURCES, 'learning'), (s) => cb(s.exists() ? (s.data() as LearningDoc) : null), onError);
     },
     /** 新しい依頼から REQUEST_LIMIT 件を見張る（watch が状態を書き戻すたびに cb） */
     onRequests(cb: (r: RequestDoc[]) => void, onError: (e: Error) => void) {

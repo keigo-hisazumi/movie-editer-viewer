@@ -39,7 +39,14 @@ export interface TopicCut {
   adjusted: string | null; // 人が微調整して書き出した XML のファイル名
   adjusted_mtime: string | null;
   memo: Memo | null; // ショートの memo.json（まだなら null）
-  learn?: LearnBrief | null; // 微調整した XML とカットの違い（learn.json の要約。まだなら null）
+  learn?: LearnBrief | null; // 微調整した XML とカットの違い・仕上がり（learn.json の要約。まだなら null）
+  lessons?: Lessons | null; // /learn がこのトピックで読み取ったこと（topic_XX/lessons.yaml。まだなら null）
+}
+
+/** topic_XX/lessons.yaml（cut：カットの直しから、short：仕上がりから） */
+export interface Lessons {
+  cut: string[];
+  short: string[];
 }
 
 /** 文ごとの違い（movie-editer の shorts/learn.py）。change：外した・一部を外した・戻した・一部を戻した */
@@ -50,6 +57,7 @@ export interface LearnChange {
   change: string;
   words?: string; // 一部を外した・戻した語
   why?: string; // 戻した文がカットでなぜ外れていたか
+  in_gap?: string; // 外した文が、仕上がりの元動画のクリップが無い所の文字に出ている（残しているかもしれない）
 }
 
 /** topic_XX/learn.json の要約（movie-editer の shorts/topiccut.py の topic_summary） */
@@ -64,7 +72,45 @@ export interface LearnBrief {
   added_sec: number;
   counts: Record<string, number>;
   changes: LearnChange[];
+  pauses_removed?: [string, number][]; // 人が詰めた間（元動画の時刻, 秒）
+  pauses_added?: [string, number][]; // 人が戻した間
+  notes?: string[];
+  finish?: Finish | null; // 仕上がり（前の版の learn.json には無い）
   made: string;
+}
+
+/** ショートの中の時刻（秒）の、付けたもの1つ。said はそのとき言っていたこと（文字起こし） */
+export interface FinishItem {
+  start: number;
+  end: number;
+  said?: string;
+}
+
+/** 人が Filmora で仕上げたショートの作り（movie-editer の shorts/finish.py。learn.json の finish） */
+export interface Finish {
+  xml: string;
+  duration: number;
+  size: [number, number];
+  clips: number; // 元動画のクリップの数
+  title: string | null; // ずっと出ている文字（タイトル・見出し）
+  title_match: string | null; // カットの「見出し」「タイトル案N」と同じなら、その名前
+  zoom: { scale: number | null; pos: [number, number] | null; sec: number; count: number }[];
+  moved: { start: number; end: number; src: string; said: string }[]; // 元動画の順から動かしたクリップ（先出し）
+  gaps: { start: number; end: number; texts: string[] }[]; // 元動画のクリップが無い所と、そこに出ている文字
+  captions: { start: number; end: number; text: string }[];
+  caption_stats: { count: number; max_chars: number; avg_chars: number; avg_sec: number };
+  emphasis: (FinishItem & { text: string; track: number; over_caption: boolean })[];
+  images: (FinishItem & { name: string; track: number; scale: number | null; pos: [number, number] | null })[];
+  se: (FinishItem & { name: string; track: number; db: number })[];
+  bgm: (FinishItem & { name: string; track: number; db: number; from: number })[];
+  notes: string[];
+}
+
+/** Firestore の sources/learning（出力フォルダ直下の学び。動画ごとでない） */
+export interface LearningDoc {
+  updated: string;
+  cut: string; // cut_learning.md
+  short: string; // short_learning.md
 }
 
 /** topic_XX/cut.json（movie-editer の shorts/topiccut.py の make_cut） */
