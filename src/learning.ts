@@ -1,7 +1,7 @@
 // 動画ページの「学習」のセクション（movie-editer の shorts/viewer.py の _learning_section と同じ内容）
 // 全体の学び（cut_learning.md・short_learning.md の決め方）と、トピックごとに読み取ったこと・カットとの違い・仕上がり
 import { foldCard, foldSection } from './fold';
-import { dur, esc } from './format';
+import { dur, esc, localTime } from './format';
 import { learnedFresh } from './stages';
 import type { Finish, LearnBrief, LearningDoc, TopicCut, VideoData } from './types';
 
@@ -150,24 +150,40 @@ function learnCard(tc: TopicCut, title: string): string {
   );
 }
 
-/** 「学習」のセクション。learning は sources/learning（undefined はまだ読めていない、null は送られていない） */
-export function learnSection(v: VideoData, topicNames: Map<number, string>, learning: LearningDoc | null | undefined): string {
-  const rules = (
+/** 学びのファイルの「事例」から後（トピックごとの事例） */
+export function learningCases(text: string): string {
+  const m = /^##\s*事例.*$/m.exec(text);
+  return m ? text.slice(m.index + m[0].length) : '';
+}
+
+/** トップページの「学習」：全体の学び（sources/learning の cut_learning.md・short_learning.md）。
+ * learning は undefined ならまだ読めていない、null なら送られていない */
+export function learningBody(learning: LearningDoc | null | undefined): string {
+  if (learning === undefined) return "<h2 id=learning>学習</h2><p class=muted>学んだことを読み込み中…</p>";
+  const cards = (
     [
-      ['cut', 'カットの決め方', 'cut_learning.md'],
-      ['short', 'ショートの仕上げ方', 'short_learning.md'],
+      ['cut', 'カットの決め方', 'cut_learning.md', '/cut が従う'],
+      ['short', 'ショートの仕上げ方', 'short_learning.md', '/short と /cut のタイトル・見出しが従う'],
     ] as const
-  ).map(([key, title, file]) => {
+  ).map(([key, title, file, use]) => {
     const text = learning?.[key] ?? '';
-    const body =
-      learning === undefined
-        ? '<p class=muted>読み込み中…</p>'
-        : text.trim()
-          ? `<div class=md>${mdHtml(learningRules(text))}</div>`
-          : '<p class=muted>まだありません</p>';
-    // 長いので最初はたたんでおく（開け閉めは foldCard と同じく data-fold で覚える）
-    return `<details class='card item' id="rules-${key}" data-fold="rules-${key}"><summary><h3>${title}（${file}）</h3></summary>${body}</details>`;
+    if (!text.trim()) {
+      return `<div class=card id="rules-${key}"><h3>${title}（${file}）</h3><p class=muted>まだありません</p></div>`;
+    }
+    const cases = learningCases(text);
+    return (
+      `<div class=card id="rules-${key}"><h3>${title}（${file}）</h3><div class='muted small'>${use}</div>` +
+      `<div class=md>${mdHtml(learningRules(text))}</div>` +
+      (cases.trim() ? `<details><summary class='muted small'>事例（トピックごと）</summary><div class=md>${mdHtml(cases)}</div></details>` : '') +
+      '</div>'
+    );
   });
+  const updated = learning?.updated ? `<div class='muted small'>更新 ${esc(localTime(learning.updated))}</div>` : '';
+  return `<h2 id=learning>学習</h2><p class='muted small'>/learn が微調整・仕上げたショートから学んだこと（全体）。トピックごとに読み取ったことは各動画のページの「学習」にあります。</p>${updated}${cards.join('')}`;
+}
+
+/** 動画ページの「学習」のセクション：トピックごとに読み取ったこと・カットとの違い・仕上がり。全体の学びはトップページ（base） */
+export function learnSection(v: VideoData, topicNames: Map<number, string>, base = '/'): string {
   const cards = (v.topic_cuts ?? [])
     .filter((tc) => tc.learn || tc.lessons)
     .map((tc) => learnCard(tc, tc.cut?.title || (topicNames.get(tc.topic) ?? tc.name)));
@@ -176,6 +192,6 @@ export function learnSection(v: VideoData, topicNames: Map<number, string>, lear
   return foldSection(
     'learn',
     `学習${cards.length ? `（${cards.length} 本）` : ''}`,
-    `<div class='muted small'>学んだこと（全体）</div>${rules.join('')}${cards.join('') || empty}`,
+    `<p class='muted small'>全体で学んだこと（カットの決め方・ショートの仕上げ方）は<a href="${esc(base)}#learning">トップページの「学習」</a>にあります。</p>${cards.join('') || empty}`,
   );
 }

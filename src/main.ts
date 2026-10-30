@@ -4,10 +4,11 @@ import { FirebaseError } from 'firebase/app';
 import { connect, firebaseOptions } from './firebase';
 import { FoldState, reveal } from './fold';
 import { esc } from './format';
+import { learningBody } from './learning';
 import { indexBody, videoBody, videoUrl } from './render';
 import { parseSources, sourcesBody } from './sources';
 import { topicCuts, videoRequests, type StageCtx } from './stages';
-import { SCHEMA, type LearningDoc, type RequestAction, type RequestDoc, type SourcesDoc, type VideoData, type VideoDoc } from './types';
+import { SCHEMA, type RequestAction, type RequestDoc, type SourcesDoc, type VideoData, type VideoDoc } from './types';
 
 const BASE = import.meta.env.BASE_URL;
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -63,7 +64,6 @@ function watchVideo(fb: Fb, name: string): () => void {
   let doc: VideoDoc | null | undefined; // undefined はまだ読めていない
   let src: SourcesDoc | null | undefined;
   let requests: RequestDoc[] | undefined;
-  let learning: LearningDoc | null | undefined;
   let first = true;
   const checked = new Set<number>();
   const folds = new FoldState(name); // 開け閉め（描き直しても・開き直しても保つ）
@@ -85,7 +85,7 @@ function watchVideo(fb: Fb, name: string): () => void {
       const rel = parseSources(src).find((s) => s.name === name)?.rel ?? null;
       ctx = { rel, requests: videoRequests(requests, rel, name), checked };
     }
-    show(videoBody(data, ctx, BASE, learning), [[name, null]], [
+    show(videoBody(data, ctx, BASE), [[name, null]], [
       ['トピック', 'topics'],
       ['カット', 'cuts'],
       ['学習', 'learn'],
@@ -142,8 +142,6 @@ function watchVideo(fb: Fb, name: string): () => void {
     fb.onVideo(name, (d) => ((doc = d), draw()), fail),
     fb.onSources((d) => ((src = d), draw()), fail),
     fb.onRequests((r) => ((requests = r), draw()), fail),
-    // 全体の学びが読めなくても動画のページは出す（学習のセクションに「まだありません」）
-    fb.onLearning((d) => ((learning = d), draw()), () => ((learning = null), draw())),
   ];
   return () => {
     stops.forEach((stop) => stop());
@@ -204,6 +202,19 @@ function watchSources(fb: Fb, outputs: Set<string>): () => void {
   return () => stops.forEach((stop) => stop());
 }
 
+/** トップページの「学習」（全体の学び）を、/learn が書き直して送られるたびに描き直す。戻り値で見張りをやめる */
+function watchLearning(fb: Fb): () => void {
+  const box = document.querySelector<HTMLElement>('#learning-box')!;
+  return fb.onLearning(
+    (d) => {
+      box.innerHTML = learningBody(d);
+    },
+    (e) => {
+      box.innerHTML = `<h2 id=learning>学習</h2><p class=err>${esc(errorMessage(e))}</p>`;
+    },
+  );
+}
+
 async function main() {
   const options = firebaseOptions();
   if (!options) {
@@ -244,11 +255,13 @@ async function main() {
       if (!name) {
         document.title = '出力一覧';
         const docs = await fb.listVideos();
-        show('<div id=sources-box><p class=muted>元動画を読み込み中…</p></div>' + indexBody(docs, BASE), [], [
+        show('<div id=sources-box><p class=muted>元動画を読み込み中…</p></div>' + indexBody(docs, BASE) + `<div id=learning-box>${learningBody(undefined)}</div>`, [], [
           ['元動画', 'sources'],
           ['出力一覧', 'outputs'],
+          ['学習', 'learning'],
         ]);
-        stopSources = watchSources(fb, new Set(docs.map((d) => d.name)));
+        const stops = [watchSources(fb, new Set(docs.map((d) => d.name))), watchLearning(fb)];
+        stopSources = () => stops.forEach((stop) => stop());
         return;
       }
       document.title = name;
