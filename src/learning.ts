@@ -24,7 +24,14 @@ export function mdHtml(text: string): string {
     items = [];
     tag = '';
   };
-  for (const line of text.replace(/<!--[\s\S]*?-->/g, '').split('\n')) {
+  // 書き手向けのコメント（<!-- … -->）は出さない。入れ子の書き方でも残らないよう、変わらなくなるまで取り除く
+  // （出す文字はどれも esc を通すので、残っても HTML にはならない）
+  let body = text;
+  for (let prev = ''; prev !== body; ) {
+    prev = body;
+    body = body.replace(/<!--[\s\S]*?-->/g, '');
+  }
+  for (const line of body.split('\n')) {
     const h = /^(#{1,4})\s+(.*)/.exec(line);
     const li = /^\s*(?:(\d+)\.|[-*])\s+(.*)/.exec(line);
     if (h) {
