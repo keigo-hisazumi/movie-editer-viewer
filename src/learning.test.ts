@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { learnSection, learningRules, mdHtml } from './learning';
+import { learnSection, learningBody, learningCases, learningRules, mdHtml } from './learning';
 import { videoBody } from './render';
 import type { Finish, LearnBrief, VideoData } from './types';
 
@@ -44,7 +44,7 @@ const data: VideoData = {
 
 describe('学習のセクション', () => {
   it('トピックごとに読み取ったこと・カットとの違い・仕上がりを出す', () => {
-    const html = learnSection(data, new Map(), { updated: '', cut: '', short: '' });
+    const html = learnSection(data, new Map(), '/viewer/');
     expect(html).toContain('id="learn"');
     expect(html).toContain('学習（1 本）');
     expect(html).toContain('id="learn-topic_04"');
@@ -57,17 +57,29 @@ describe('学習のセクション', () => {
     expect(html).toContain('(BGM)WILD_BOYS.mp3（0.0秒から、-15.0dB）');
     expect(html).not.toContain('learn-topic_05'); // 学習していないトピックは出さない
   });
-  it('全体の学びは事例より前（決め方）だけを出す', () => {
-    const html = learnSection(data, new Map(), { updated: '', cut: '## 決め方\n1. **オチ**で終える\n## 事例\n- 古い事例', short: '' });
-    expect(html).toContain('<ol><li><strong>オチ</strong>で終える</li></ol>');
-    expect(html).not.toContain('古い事例');
-    expect(html).toContain('まだありません'); // short_learning.md が空
+  it('全体の学びは出さず、トップページへのリンクにする', () => {
+    const html = learnSection(data, new Map(), '/viewer/');
+    expect(html).toContain('href="/viewer/#learning"');
+    expect(html).not.toContain('rules-cut');
   });
   it('カットのカードには学習の詳細を出さず、学習のセクションへのリンクにする', () => {
     const html = videoBody(data);
     const cutCard = html.slice(html.indexOf('id="topic_04"'), html.indexOf('id="learn"'));
     expect(cutCard).toContain('href="#learn-topic_04"');
     expect(cutCard).not.toContain('人が変えた文');
+  });
+});
+
+describe('トップページの学習', () => {
+  it('決め方を出し、事例はたたんで出す', () => {
+    const html = learningBody({ updated: '', cut: '## 決め方\n1. **オチ**で終える\n## 事例\n- 古い事例', short: '' });
+    expect(html).toContain('id=learning');
+    expect(html).toContain('<ol><li><strong>オチ</strong>で終える</li></ol>');
+    expect(html).toContain('<details><summary class=\'muted small\'>事例（トピックごと）</summary><div class=md><ul><li>古い事例</li></ul>');
+    expect(html).toContain('まだありません'); // short_learning.md が空
+  });
+  it('読み込み中', () => {
+    expect(learningBody(undefined)).toContain('読み込み中');
   });
 });
 
@@ -78,5 +90,7 @@ describe('Markdown', () => {
   });
   it('事例より前', () => {
     expect(learningRules('a\n## 事例\nb')).toBe('a\n');
+    expect(learningCases('a\n## 事例\nb')).toBe('\nb');
+    expect(learningCases('a')).toBe('');
   });
 });

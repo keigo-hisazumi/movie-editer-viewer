@@ -3,7 +3,7 @@ import { foldBar, foldCard, foldSection } from './fold';
 import { learnSection } from './learning';
 import { esc, g, localTime, shortTime, signed } from './format';
 import { activeByTopic, checkCell, cutsSection, requestsSection, stageBar, stageCell, topicCuts, type StageCtx } from './stages';
-import type { LearningDoc, Memo, Short, VideoData, VideoDoc } from './types';
+import type { Memo, Short, VideoData, VideoDoc } from './types';
 
 /** 動画ページの URL（?v=動画名。# はページ内の移動に使う） */
 export function videoUrl(base: string, name: string): string {
@@ -155,10 +155,9 @@ function shortCard(s: Short, id: string = s.name): string {
   return foldCard(id, `${head}<h3>${esc(c.title || s.name)}</h3><div>${chips.join('')}</div>`, `<dl>${dl(items)}</dl>`);
 }
 
-/** 動画ページ。ctx は段階式の依頼に要るもの（null なら依頼のボタンは出さない・使えない）。
- * learning は全体の学び（sources/learning。undefined はまだ読めていない） */
-export function videoBody(v: VideoData, ctx: StageCtx | null = null, base = '/', learning?: LearningDoc | null): string {
+/** 動画ページ。ctx は段階式の依頼に要るもの（null なら依頼のボタンは出さない・使えない） */
+export function videoBody(v: VideoData, ctx: StageCtx | null = null, base = '/'): string {
   const [topicsHtml, topicNames] = topicsSection(v, ctx);
   const cutsHtml = cutsSection(v, topicNames, (id, tc) => shortCard({ name: tc.name, files: tc.files, memo: tc.memo }, id));
-  return `<h1>${esc(v.name)}</h1>${foldBar()}${topicsHtml}${cutsHtml}${learnSection(v, topicNames, learning)}${requestsSection(ctx, base)}`;
+  return `<h1>${esc(v.name)}</h1>${foldBar()}${topicsHtml}${cutsHtml}${learnSection(v, topicNames, base)}${requestsSection(ctx, base)}`;
 }
