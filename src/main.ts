@@ -7,7 +7,7 @@ import { esc } from './format';
 import { indexBody, videoBody, videoUrl } from './render';
 import { parseSources, sourcesBody } from './sources';
 import { topicCuts, videoRequests, type StageCtx } from './stages';
-import { SCHEMA, type RequestAction, type RequestDoc, type SourcesDoc, type VideoData, type VideoDoc } from './types';
+import { SCHEMA, type LearningDoc, type RequestAction, type RequestDoc, type SourcesDoc, type VideoData, type VideoDoc } from './types';
 
 const BASE = import.meta.env.BASE_URL;
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -63,6 +63,7 @@ function watchVideo(fb: Fb, name: string): () => void {
   let doc: VideoDoc | null | undefined; // undefined はまだ読めていない
   let src: SourcesDoc | null | undefined;
   let requests: RequestDoc[] | undefined;
+  let learning: LearningDoc | null | undefined;
   let first = true;
   const checked = new Set<number>();
   const folds = new FoldState(name); // 開け閉め（描き直しても・開き直しても保つ）
@@ -84,9 +85,10 @@ function watchVideo(fb: Fb, name: string): () => void {
       const rel = parseSources(src).find((s) => s.name === name)?.rel ?? null;
       ctx = { rel, requests: videoRequests(requests, rel, name), checked };
     }
-    show(videoBody(data, ctx, BASE), [[name, null]], [
+    show(videoBody(data, ctx, BASE, learning), [[name, null]], [
       ['トピック', 'topics'],
       ['カット', 'cuts'],
+      ['学習', 'learn'],
     ], first, () => folds.apply(app));
     first = false;
   };
@@ -140,6 +142,8 @@ function watchVideo(fb: Fb, name: string): () => void {
     fb.onVideo(name, (d) => ((doc = d), draw()), fail),
     fb.onSources((d) => ((src = d), draw()), fail),
     fb.onRequests((r) => ((requests = r), draw()), fail),
+    // 全体の学びが読めなくても動画のページは出す（学習のセクションに「まだありません」）
+    fb.onLearning((d) => ((learning = d), draw()), () => ((learning = null), draw())),
   ];
   return () => {
     stops.forEach((stop) => stop());

@@ -1,10 +1,10 @@
-// 動画ページの段階式（トピック → カット → 微調整 → 学習）の部分の HTML
+// 動画ページの段階式（トピック → カット → 微調整 → 学習）の部分の HTML（学習の詳細は learning.ts の「学習」のセクション）
 // トピックを選んで「カットを作る」、微調整した XML を置いたトピックで「学習させる」を頼む（movie-editer の watch が /cut・/learn で処理する）
 // ショート（/short）は movie-editer に残してあるが、いまはボタンを出さない（作ったショートがあれば表示はする）
 import { foldCard, foldSection } from './fold';
 import { dur, esc, localTime } from './format';
 import { isActive, requestRow, statusChip } from './sources';
-import type { CutMemo, LearnBrief, RequestDoc, TopicCut, VideoData } from './types';
+import type { CutMemo, RequestDoc, TopicCut, VideoData } from './types';
 
 /** 動画ページで依頼を出すのに要るもの。rel が null なら元動画の一覧に無い（依頼できない） */
 export interface StageCtx {
@@ -58,7 +58,11 @@ export function stageCell(topic: number, tc: TopicCut | undefined, ctx: StageCtx
   }
   const fresh = learnedFresh(tc);
   if (tc?.learn) {
-    chips.push(fresh ? `<a class='chip ok' href="#${esc(tc.name)}">学習済み</a>` : "<span class='chip warn'>学習のあと XML が変わった</span>");
+    chips.push(
+      fresh
+        ? `<a class='chip ok' href="#learn-${esc(tc.name)}">学習済み</a>`
+        : `<a class='chip warn' href="#learn-${esc(tc.name)}">学習のあと XML が変わった</a>`,
+    );
   }
   if (tc?.memo) chips.push(`<a class='chip ok' href="#${esc(tc.name)}-short">ショート作成済み</a>`);
   const r = active.get(topic);
@@ -94,24 +98,6 @@ export function stageBar(v: VideoData, ctx: StageCtx | null): string {
   return `${steps}<div class=stagebar>${button}</div>`;
 }
 
-/** 微調整した XML とカットの違い（learn.json の要約） */
-function learnRows(r: LearnBrief): [string, string][] {
-  const sign = (x: number) => `${x >= 0 ? '+' : ''}${x.toFixed(1)}`;
-  const changes = r.changes.map(
-    (s) =>
-      `${esc(s.change)}：${esc(s.start.slice(3))} ${esc(s.words || s.text)}` +
-      (s.why ? ` <span class='muted small'>（カットでは ${esc(s.why)}）</span>` : ''),
-  );
-  return [
-    [
-      '微調整との違い',
-      `${dur(r.cut.duration)} → ${dur(r.adjusted.duration)}（人が外した ${r.removed_sec}秒・戻した ${r.added_sec}秒、` +
-        `頭 ${sign(r.head)}秒・終わり ${sign(r.tail)}秒）`,
-    ],
-    ['人が変えた文', changes.length ? changes.join('<br>') : '<span class=muted>なし（間の調整だけ）</span>'],
-  ];
-}
-
 function cutCard(tc: TopicCut, title: string): string {
   const cut: CutMemo | null = tc.cut;
   const chips = [`<a class=chip href="#topic-${tc.topic}">トピック${tc.topic}</a>`];
@@ -121,6 +107,7 @@ function cutCard(tc: TopicCut, title: string): string {
       ? `<span class='chip ok'>微調整：${esc(tc.adjusted)}${tc.adjusted_mtime ? `（${esc(localTime(tc.adjusted_mtime))}）` : ''}</span>`
       : '<span class=chip>微調整した XML なし</span>',
   );
+  if (tc.learn) chips.push(`<a class='chip ok' href="#learn-${esc(tc.name)}">学習の詳細</a>`);
   if (!cut) {
     return foldCard(tc.name, `<h3>${esc(title)}</h3><div>${chips.join('')}</div>`, '<p class=muted>cut.json がありません</p>');
   }
@@ -135,7 +122,6 @@ function cutCard(tc: TopicCut, title: string): string {
     ['内容', esc(cut.summary || '（未記入）')],
     ['区間', `${esc(cut.start)}〜${esc(cut.end)}（削った分：${removed}）`],
     ['外した話', lines(cut.drop.map(([a, b]) => `${esc(a)}〜${esc(b)}`))],
-    ...(tc.learn ? learnRows(tc.learn) : []),
     [
       'ファイル',
       lines(tc.files.map((f) => `<code>${esc(f)}</code>`)) +
