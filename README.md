@@ -73,7 +73,7 @@ npm test          # テスト
     ├── sources.ts           # 元動画の一覧と依頼の HTML
     ├── stages.ts            # 動画ページの段階式（トピックの選択・カット・ショート）の HTML
     ├── format.ts            # 時刻などの表示用関数
-    ├── types.ts             # Firestore のデータの型
+    ├── types.ts             # Firestore のデータの型（正本は movie-editer-schema。ビューアだけの形を足す）
     └── style.css            # 見た目（movie-editer の serve と同じ）
 ```
 
