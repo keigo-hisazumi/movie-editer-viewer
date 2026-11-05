@@ -1,9 +1,12 @@
 # movie-editer-viewer
 
-[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・カット・学習・ショート）を、Firestore 経由でスマホなどから見るためのビューアです。movie-editer の `serve` と同じ内容を、メール/パスワードでログインした本人だけが見られます。公開先は <https://keigo-hisazumi.github.io/movie-editer-viewer/> です。
+[movie-editer](https://github.com/keigo-hisazumi/movie-editer) で作ったショートの下書きの記録（トピック・カット・学習・ショート）を、スマホなどから見るビューアです。
+
+**公開 URL**: <https://keigo-hisazumi.github.io/movie-editer-viewer/>
 
 ## 主な機能
 
+- movie-editer の `serve` と同じ内容を、Firestore 経由でスマホなどから表示
 - 元動画（movie-editer の `video_dir` の録画）の一覧と、それぞれの処理の状態
 - ボタンで段階式の処理を頼む：トピックを作る → トピックを選んでカット（フィラー・無音・関係ない話を詰めた XML とタイトル案）を作る → Filmora で微調整・仕上げた XML をカットと比べて学習させる（次からのカットとショートの仕上げに生かす。Mac の movie-editer が受け取って処理し、進み具合と結果が出る）
 - トピックごとのカット・微調整した XML・ショートの状態
