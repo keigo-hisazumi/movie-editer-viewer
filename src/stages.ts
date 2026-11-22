@@ -105,7 +105,7 @@ function cutCard(tc: TopicCut, title: string): string {
   chips.push(
     tc.adjusted
       ? `<span class='chip ok'>微調整：${esc(tc.adjusted)}${tc.adjusted_mtime ? `（${esc(localTime(tc.adjusted_mtime))}）` : ''}</span>`
-      : '<span class=chip>微調整した XML なし</span>',
+      : '<span class=chip>微調整した XML・プロジェクトなし</span>',
   );
   if (tc.learn) chips.push(`<a class='chip ok' href="#learn-${esc(tc.name)}">学習の詳細</a>`);
   if (!cut) {

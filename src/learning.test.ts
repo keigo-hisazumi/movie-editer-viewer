@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { learnSection, learningBody, learningCases, learningRules, mdHtml } from './learning';
+import { finishRows, learnSection, learningBody, learningCases, learningRules, mdHtml } from './learning';
 import { videoBody } from './render';
 import type { Finish, LearnBrief, VideoData } from './types';
 
@@ -56,6 +56,35 @@ describe('学習のセクション', () => {
     expect(html).toContain('バーン(ドラ).mp3');
     expect(html).toContain('(BGM)WILD_BOYS.mp3（0.0秒から、-15.0dB）');
     expect(html).not.toContain('learn-topic_05'); // 学習していないトピックは出さない
+  });
+  it('Premiere のプロジェクトから読んだ仕上がり（字幕のスタイル・直し・寄りの動き・ほかの文字）を出す', () => {
+    const f: Finish = {
+      ...finish,
+      xml: '20261021_topic_02_short_r0006.prproj',
+      source: 'prproj',
+      title: '個人情報の海へ\n溺れていく',
+      screen_texts: [{ text: '個人情報の海へ\n溺れていく' }, { text: '大森一子', font: '07AkazukinPop', nested: 'ベースフレーム' }],
+      zoom_moves: [{ start: 0.3, end: 0.47, from: 180, to: 280, said: 'さようなら' }],
+      caption_styles: [{ style: '夫字幕', font: '07AkazukinPop', count: 8 }],
+      caption_changes: {
+        base: 'edit.srt',
+        counts: { そのまま: 37, 強調の文字にした: 1, カットで外した: 1 },
+        items: [
+          { change: '強調の文字にした', start: 0.2, src: '00:03:57.800', before: 'さようなら', after: '［さようなら］' },
+          { change: 'カットで外した', src: '00:03:42.500', before: '一般人我々が', after: '' },
+        ],
+      },
+      emphasis: [{ start: 0.3, end: 1.6, text: 'さようなら', track: 4, over_caption: false, font: '851CHIKARA-YOWAKU' }],
+    };
+    const html = finishRows(f).map(([k, v]) => `${k}:${v}`).join('\n');
+    expect(html).toContain('大森一子');
+    expect(html).not.toContain('ほかにずっと出ている文字:個人情報');
+    expect(html).toContain('0.30〜0.47秒 180% → 280%');
+    expect(html).toContain('夫字幕 8 個（07AkazukinPop）');
+    expect(html).toContain('edit.srt と比べて：そのまま 37、強調の文字にした 1、カットで外した 1');
+    expect(html).toContain('強調の文字にした：0.2秒 「さようなら」→「［さようなら］」');
+    expect(html).toContain('カットで外した：元動画 03:42.500 「一般人我々が」→「」');
+    expect(html).toContain('（851CHIKARA-YOWAKU）');
   });
   it('全体の学びは出さず、トップページへのリンクにする', () => {
     const html = learnSection(data, new Map(), '/viewer/');

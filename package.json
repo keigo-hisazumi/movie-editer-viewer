@@ -13,7 +13,7 @@
     "firebase": "^13.3.0"
   },
   "devDependencies": {
-    "movie-editer-schema": "github:keigo-hisazumi/movie-editer-schema#d9d5c2ef79e2de66176c6587f2d8164238a406a7",
+    "movie-editer-schema": "github:keigo-hisazumi/movie-editer-schema#28dd07cc912d7f37f13e11af20e7df676ab6203a",
     "typescript": "~6.0.3",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
