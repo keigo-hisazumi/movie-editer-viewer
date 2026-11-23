@@ -93,8 +93,15 @@ export function finishRows(f: Finish): [string, string][] {
     const m = f.title_match ? `カットの${esc(f.title_match)}と同じ` : 'カットの見出し・タイトル案と違う';
     rows.push(['ずっと出ている文字', `${f.title.split('\n').map(esc).join('<br>')}<div class='muted small'>${m}</div>`]);
   }
+  const others = (f.screen_texts ?? []).filter((x) => x.text !== f.title);
+  if (others.length) {
+    rows.push(['ほかにずっと出ている文字', lines(others.map((x) => x.text.split('\n').map(esc).join(' / ')))]);
+  }
   if (f.zoom.length) {
     rows.push(['寄り', lines(f.zoom.map((z) => `${esc(z.scale)}%（位置 ${esc(z.pos?.join(', '))}）${f1(z.sec)}秒・${z.count} 個`))]);
+  }
+  if (f.zoom_moves?.length) {
+    rows.push(['寄りの動き', lines(f.zoom_moves.map((z) => `${z.start.toFixed(2)}〜${z.end.toFixed(2)}秒 ${esc(z.from)}% → ${esc(z.to)}%${said(z)}`))]);
   }
   if (f.moved.length) {
     rows.push(['先に出した所', lines(f.moved.map((m) => `${f1(m.start)}〜${f1(m.end)}秒 ← 元動画 ${esc(m.src.slice(3))}${said(m)}`))]);
@@ -111,14 +118,29 @@ export function finishRows(f: Finish): [string, string][] {
     rows.push([
       '字幕',
       `${st.count} 個（平均 ${st.avg_chars} 文字・最大 ${st.max_chars} 文字・平均 ${st.avg_sec}秒）` +
+        (f.caption_styles?.length
+          ? `<div class='muted small'>スタイル：${f.caption_styles.map((x) => `${esc(x.style ?? '（なし）')} ${x.count} 個（${esc(x.font ?? 'フォント不明')}）`).join('、')}</div>`
+          : '') +
         `<details><summary class='muted small'>字幕の一覧</summary><div class=small>${f.captions.map((c) => esc(c.text)).join(' / ')}</div></details>`,
     ]);
+  }
+  const cc = f.caption_changes;
+  if (cc) {
+    const counts = Object.entries(cc.counts).map(([k, v]) => `${esc(k)} ${v}`).join('、');
+    const items = cc.items.map(
+      (x) =>
+        `${esc(x.change)}：${x.start !== undefined ? `${f1(x.start)}秒` : `元動画 ${esc((x.src ?? '').slice(3))}`} 「${esc(x.before)}」→「${esc(x.after)}」` +
+        (x.style ? `<span class='muted small'>（${esc(x.style)}）</span>` : ''),
+    );
+    rows.push(['字幕の直し', `<div class='muted small'>${esc(cc.base)} と比べて：${counts}</div>${lines(items)}`]);
   }
   rows.push([
     '強調の文字',
     lines(
       f.emphasis.map(
-        (x) => `${f1(x.start)}秒 <strong>${esc(x.text)}</strong>${x.over_caption ? "<span class='muted small'>（字幕に重ねる）</span>" : ''}${said(x)}`,
+        (x) =>
+          `${f1(x.start)}秒 <strong>${esc(x.text)}</strong>${x.over_caption ? "<span class='muted small'>（字幕に重ねる）</span>" : ''}` +
+          `${x.font ? `<span class='muted small'>（${esc(x.font)}）</span>` : ''}${said(x)}`,
       ),
     ),
   ]);
